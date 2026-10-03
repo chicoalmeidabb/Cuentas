@@ -115,6 +115,13 @@ table.t{border-collapse:collapse;width:100%}
 .lnk{color:var(--ink);font-weight:600;text-decoration:none}
 .mv{display:flex;align-items:center;gap:16px;width:100%;min-height:52px;padding:6px 4px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
 .mv .d{flex:none;width:64px;font-size:15px;color:var(--muted)} .mv .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .mv .c{flex:none;width:150px;font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .mv .a{flex:none;font-weight:700}
+.crow{display:flex;align-items:center;gap:14px;min-height:68px;padding:8px 4px;border-bottom:1px solid var(--line)}
+.crow:last-child{border-bottom:0}
+.crow .key{flex:none;display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:700}
+.crow .nm{flex:1;min-width:0}
+.crow .nm b{display:block;font-size:17px}
+.crow .nm>span{font-size:14px;color:var(--muted)}
+.crow.off{opacity:.6}
 .empty{padding:28px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
 
 /* inicio */
@@ -193,7 +200,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.3';
+const APP_VERSION='1.4';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -333,6 +340,10 @@ function applyOp(db,action,p){
     case 'savePos': { const f=p.fila; const o={id:String(f[0]),n:String(f[1]),b:String(f[2]||''),g:String(f[3]||''),t:String(f[4]||''),o:Number(f[5])||0,desde:String(f[6]||''),hasta:String(f[7]||'')}; const k=db.pos.findIndex(x=>x.id===o.id); if(k>=0) db.pos[k]=o; else db.pos.push(o); break; }
     case 'saveLearn': (p.items||[]).forEach(it=>{ db.learn=db.learn.filter(x=>!(x.pat===String(it[0])&&x.tipo===String(it[1]))); if(it[2]!==''&&it[2]!=null) db.learn.push({pat:String(it[0]),tipo:String(it[1]),val:String(it[2])}); }); break;
     case 'addCat': { const f=p.fila; const k=db.cats.findIndex(c=>c.k===String(f[0])); const o={k:String(f[0]),n:String(f[1]),a:String(f[2])!=='0'}; if(k>=0) db.cats[k]=o; else db.cats.push(o); break; }
+    case 'renameCat': { const old=String(p.anterior), nu=String(p.nombre);
+      if(p.fusionar) db.cats=db.cats.filter(x=>x.k!==String(p.clave)); else { const ct=db.cats.find(x=>x.k===String(p.clave)); if(ct) ct.n=nu; }
+      db.movs.forEach(m=>{ if(m.c===old) m.c=nu; }); db.learn.forEach(l=>{ if(l.tipo==='cat'&&l.val===old) l.val=nu; }); break; }
+    case 'delCat': db.cats=db.cats.filter(x=>x.k!==String(p.clave)); db.learn=db.learn.filter(l=>!(l.tipo==='cat'&&l.val===String(p.nombre))); break;
     case 'setCfg': db.cfg[p.clave]=String(p.valor); break;
   }
 }
@@ -482,7 +493,8 @@ const ICONS={
  check:'<path d="M5 13l4 4L19 7"></path>', up:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path>',
  warn:'<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path>',
  sync:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path>',
- menu:'<path d="M4 6h16M4 12h16M4 18h16"></path>'
+ menu:'<path d="M4 6h16M4 12h16M4 18h16"></path>',
+ tag:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path><path d="M7.5 7.5h.01"></path>'
 };
 const icon=(n,s)=>`<svg class="ic${s==='s'?' s':''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
 let toastT=null;
@@ -497,8 +509,8 @@ const bar=(w,h=12,c)=>`<div class="meter" style="height:${h}px"><i style="width:
 const catOpts=(sel,extra='')=>`${extra}`+S.db.cats.filter(c=>c.a).map(c=>`<option value="${esc(c.n)}"${c.n===sel?' selected':''}>${esc(c.n)}</option>`).join('');
 const catName=c=>c||'Sin categoría';
 
-const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['datos','Datos y copias','gear']];
-const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',movs:'movs',pat:'pat',foto:'pat',datos:'datos'};
+const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear']];
+const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',datos:'datos'};
 function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='home'?' homesync':''}" data-sync="${where||'side'}" data-go="datos">${icon(S.sync.ico||'check','s')}<span>${esc(S.sync.txt||'Todo guardado')}</span></button>`; }
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
@@ -570,7 +582,8 @@ function inicioView(){
    <section><h2>Consultar</h2><div class="tiles">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto llevas gastado en cada cosa: todo el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía')}
    ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`)}
    ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`)}
-   ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía')}</div></section></div>`;
+   ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía')}
+   ${tile('#/conceptos','tag','Conceptos','Cambia el nombre de los conceptos de gasto o añade nuevos.',`${S.db.cats.filter(x=>x.a).length} conceptos`)}</div></section></div>`;
 }
 
 /* ================= nuevo mes ================= */
@@ -897,6 +910,62 @@ function fotoSave(){
   commit('saveFoto',{foto:['f'+uid(),c.iso,d.cierra],valores}); S.foto=null; go('pat'); toast('Foto guardada');
 }
 
+/* ================= conceptos ================= */
+const scriptOk=()=>parseFloat(S.sync.version||'0')>=1.1;
+function nextCatKey(){
+  const used=new Set(S.db.cats.map(c=>c.k)), L='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(const a of L) if(!used.has(a+'=')) return a+'=';
+  for(const a of L) for(const b of L) if(!used.has(a+b+'=')) return a+b+'=';
+  return 'Z'+Date.now()+'=';
+}
+const normCat=s=>norm(s).replace(/s$/,'');
+function conceptosView(){
+  const st=new Map();
+  S.db.movs.forEach(m=>{ const k=m.c||''; const s=st.get(k)||{n:0,t:0}; s.n++; s.t+=m.i; st.set(k,s); });
+  const sin=st.get('')||{n:0,t:0};
+  const rows=S.db.cats.map(c=>{
+    const s=st.get(c.n)||{n:0,t:0};
+    return `<div class="crow ${c.a?'':'off'}"><span class="key">${esc(c.k.replace('=',''))}</span><span class="nm"><b>${esc(c.n)}${c.a?'':' <span class="tag gray">Oculto</span>'}</b><span>${s.n?`${s.n} movimientos · ${eur(s.t)}`:'Sin movimientos'}</span></span><button class="btn alt sm" data-act="catedit" data-k="${esc(c.k)}">Editar</button><button class="btn alt sm" data-act="cattoggle" data-k="${esc(c.k)}">${c.a?'Ocultar':'Mostrar'}</button></div>`;
+  }).join('');
+  const aviso=scriptOk()?'':`<p class="note">Para cambiar nombres, fusionar o borrar conceptos hay que actualizar el script de Google a la versión 1.1. Añadir y ocultar funcionan ya.</p>`;
+  return shell('conceptos',`<header class="row c" style="justify-content:space-between"><div><h1 class="h1">Conceptos</h1><p class="sub">Los tipos de gasto. Cambia el nombre, añade nuevos u ocúltalos.</p></div><button class="btn" data-act="catadd">${icon('plus')}Añadir concepto</button></header>
+   ${aviso}${sin.n?`<div class="note row c"><span class="grow1" style="min-width:260px"><b>${sin.n} movimientos sin concepto</b> (${eur(sin.t)}).</span><a class="linkbtn" href="#/movs" data-act="catnone" style="color:var(--warn)">Revisarlos</a></div>`:''}
+   ${card(`<div class="h2" style="margin-bottom:6px">${S.db.cats.length} conceptos</div><p class="muted" style="font-size:14px;margin-bottom:6px">Ocultar un concepto lo quita de las listas al apuntar gastos, pero sus movimientos se conservan.</p>${rows}`)}`,'');
+}
+function openCatAdd(){
+  openDlg(`<h2 class="h2">Añadir concepto</h2><div class="field"><label for="c-n">Nombre del concepto</label><input id="c-n" class="inp" style="font-weight:500" autocomplete="off" placeholder="Por ejemplo: Mascotas"></div><p class="note err" id="e-err" hidden></p><div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="cat-add-save">Añadir</button></div>`);
+  setTimeout(()=>{ const i=$('#c-n'); if(i) i.focus(); },60);
+}
+function saveCatAdd(){
+  const n=$('#c-n').value.trim(); if(!n) return entryErr('Escribe un nombre.');
+  if(S.db.cats.some(c=>normCat(c.n)===normCat(n))) return entryErr('Ya existe un concepto con ese nombre.');
+  commit('addCat',{fila:[nextCatKey(),n,'1']}); closeDlg(); render(); toast('Concepto añadido');
+}
+function openCatEdit(k){
+  const c=S.db.cats.find(x=>x.k===k); if(!c) return; S.catEdit=k;
+  const n=S.db.movs.filter(m=>m.c===c.n).length, ok=scriptOk();
+  const others=S.db.cats.filter(x=>x.k!==k).map(x=>`<option value="${esc(x.k)}">${esc(x.n)}</option>`).join('');
+  openDlg(`<h2 class="h2">Editar concepto</h2>
+   ${ok?'':'<p class="note" style="margin-bottom:12px">Actualiza el script de Google (versión 1.1) para poder cambiar nombres, fusionar o borrar.</p>'}
+   <div class="field"><label for="c-n">Nombre</label><input id="c-n" class="inp" style="font-weight:500" autocomplete="off" value="${esc(c.n)}" ${ok?'':'disabled'}></div>
+   <p class="muted" style="font-size:14px;margin-bottom:14px">${n?`${n} movimientos usan este concepto. Si cambias el nombre, cambia en todos.`:'Ningún movimiento usa este concepto.'}</p>
+   <div class="field"><label for="c-m">Fusionar con otro concepto</label><select id="c-m" class="sel" style="font-weight:500" ${ok?'':'disabled'}><option value="">No fusionar</option>${others}</select><span class="muted" style="font-size:13px">Pasa todos sus movimientos al otro concepto y borra éste.</span></div>
+   <p class="note err" id="e-err" hidden></p>
+   <div class="acts">${ok&&!n?'<button class="btn danger" data-act="cat-del">Borrar</button>':''}<span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="cat-edit-save" ${ok?'':'disabled'}>Guardar</button></div>`);
+}
+function saveCatEdit(){
+  const c=S.db.cats.find(x=>x.k===S.catEdit); if(!c) return closeDlg();
+  const nuevo=$('#c-n').value.trim(), merge=$('#c-m').value;
+  if(merge){
+    const dest=S.db.cats.find(x=>x.k===merge); if(!dest) return;
+    commit('renameCat',{clave:c.k,anterior:c.n,nombre:dest.n,fusionar:true}); closeDlg(); render(); toast(`«${c.n}» fusionado con «${dest.n}»`); return;
+  }
+  if(!nuevo) return entryErr('Escribe un nombre.');
+  if(nuevo===c.n) return closeDlg();
+  if(S.db.cats.some(x=>x.k!==c.k&&normCat(x.n)===normCat(nuevo))) return entryErr('Ya existe un concepto con ese nombre. Usa "Fusionar" si quieres juntarlos.');
+  commit('renameCat',{clave:c.k,anterior:c.n,nombre:nuevo}); closeDlg(); render(); toast('Nombre cambiado');
+}
+
 /* ================= datos y copias ================= */
 function datosView(){
   const pend=S.outbox.length, url=S.cfg?S.cfg.url:'', short=url.length>58?url.slice(0,34)+'…'+url.slice(-18):url;
@@ -908,7 +977,7 @@ function datosView(){
     ${pend?`<p class="note" style="margin-top:14px">${pend} cambios esperando a guardarse en tu hoja.</p><div class="row" style="margin-top:10px"><button class="btn alt sm" data-act="resync">Reintentar</button><button class="btn danger sm" data-act="dropoutbox">Descartar lo pendiente</button></div>`:''}`)}
   ${card(`<div class="h2">Instalar la app</div><p class="muted" style="margin-bottom:12px">Para abrir Cuentas desde un icono, a pantalla completa.</p><button class="btn" data-act="install" data-install ${window.__ip?'':'hidden'}>Instalar app</button><p class="muted" ${window.__ip?'hidden':''} style="font-size:14px">Si no aparece el botón, Chrome no ofrece instalarla ahora (ya está instalada o falta recargar la página).</p>`)}
   ${card(`<div class="h2">Copia de seguridad</div><p class="muted" style="margin-bottom:12px">Tus datos ya están en tu hoja de Drive. Además puedes bajarte una copia en Excel y guardarla donde quieras.</p><div class="row"><button class="btn" data-act="export">Descargar copia en Excel</button><label class="btn alt"><input type="file" class="sr" accept=".xlsx" data-chg="restore">Cargar una copia</label></div>`)}
-  ${card(`<div class="h2">Categorías</div><div class="chips" style="margin:8px 0 14px">${S.db.cats.map(c=>`<span class="tag gray" style="font-size:14px;padding:4px 12px">${esc(c.k)} ${esc(c.n)}</span>`).join('')}</div><div class="row e"><div class="field"><label for="ncn">Nueva categoría</label><input id="ncn" class="inp" style="width:240px;font-weight:500" placeholder="Nombre"></div><div class="field"><label for="nck">Letra</label><input id="nck" class="inp" style="width:90px" maxlength="1" placeholder="W"></div><button class="btn alt" data-act="addcat">Añadir</button></div><p class="note err" id="ncerr" hidden style="margin-top:12px"></p>`)}
+  ${card(`<div class="h2">Conceptos</div><p class="muted" style="margin:6px 0 12px">${S.db.cats.length} conceptos de gasto. Cámbiales el nombre o añade nuevos.</p><a class="btn alt" href="#/conceptos">Gestionar conceptos</a>`)}
   ${card(`<div class="h2">Posiciones del patrimonio</div><p class="muted" style="margin-bottom:8px">Archivar una posición (por ejemplo, una cuenta cerrada) deja de contarla desde esa fecha, pero conserva su historia.</p>${pos}<div style="margin-top:14px"><button class="btn alt" data-act="posadd">Añadir posición</button></div>`)}
   ${card(`<div class="h2">Aprendizaje</div><p class="muted">${S.db.learn.filter(l=>l.tipo==='cat').length} conceptos y ${S.db.learn.filter(l=>l.tipo==='traspaso'&&l.val).length} traspasos recordados. La app los usa para clasificar sola el mes siguiente.</p>`)}`,'');
 }
@@ -988,7 +1057,7 @@ function openClose(id){ const p=S.db.pos.find(x=>x.id===id); const pc=patCalc(S.
 function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; let h=''; if(!reopen){ h=$('#p-h').value; if(!parseDate(h)) return entryErr('Pon una fecha válida.'); }
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
-const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,movs:movsView,pat:patView,foto:fotoView,datos:datosView};
+const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,datos:datosView};
 
 /* ================= eventos ================= */
 const ACT={
@@ -1020,9 +1089,12 @@ const ACT={
   resync(){ flush().then(()=>pull()).then(()=>{ render(); toast('Sincronizado'); }); },
   dropoutbox(){ S.outbox=[]; saveOutbox(); pull().then(()=>{ render(); toast('Pendientes descartados'); }); },
   export(){ exportExcel(); },
-  addcat(){ const n=$('#ncn').value.trim(), k=$('#nck').value.trim().toUpperCase(), e=$('#ncerr'); const bad=m=>{ e.textContent=m; e.hidden=false; };
-    if(!n||!k) return bad('Escribe el nombre y una letra.'); if(S.db.cats.some(c=>c.n.toLowerCase()===n.toLowerCase())) return bad('Ya existe una categoría con ese nombre.'); if(S.db.cats.some(c=>c.k===k+'=')) return bad('Esa letra ya está en uso.');
-    commit('addCat',{fila:[k+'=',n,'1']}); render(); toast('Categoría añadida'); },
+  catadd(){ openCatAdd(); }, 'cat-add-save'(){ saveCatAdd(); },
+  catedit(el){ openCatEdit(el.dataset.k); }, 'cat-edit-save'(){ saveCatEdit(); },
+  cattoggle(el){ const c=S.db.cats.find(x=>x.k===el.dataset.k); if(!c) return; commit('addCat',{fila:[c.k,c.n,c.a?'0':'1']}); render(); toast(c.a?'Concepto oculto':'Concepto visible'); },
+  catnone(){ S.f={q:'',cat:'__none__',month:0,limit:80}; },
+  'cat-del'(){ const a=$('.acts'); a.innerHTML='<span style="flex:1"></span><span style="margin-right:8px">¿Borrar este concepto?</span><button class="btn alt" data-act="dclose">No</button><button class="btn danger" data-act="cat-del-yes">Sí, borrar</button>'; },
+  'cat-del-yes'(){ const c=S.db.cats.find(x=>x.k===S.catEdit); if(c){ commit('delCat',{clave:c.k,nombre:c.n}); } closeDlg(); render(); toast('Concepto borrado'); },
   posadd(){ openPos(null); }, posclose(el){ openClose(el.dataset.id); }, posreopen(el){ S.posEdit=el.dataset.id; savePosClose(true); }
 };
 document.addEventListener('click',e=>{
@@ -1048,7 +1120,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{ if(e.target.dataset&&e.target.dataset.inp==='q'){ S.f.q=e.target.value; S.f.limit=80; $('#movlist').innerHTML=movListHTML(); } });
 document.addEventListener('focusout',e=>{ if(e.target.id==='e-txt'&&!entryTouched){ const t=e.target.value.trim(); if(!t) return; const c=classify(t,makeCtx()); if(c.cat){ const sel=$('#e-cat'); if([...sel.options].some(o=>o.value===c.cat)) sel.value=c.cat; } } });
-document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('#dlg')&&e.target.tagName==='INPUT'){ e.preventDefault(); if($('#i-val')) saveIncome(); else if($('#e-amt')) saveEntry(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('#dlg')&&e.target.tagName==='INPUT'){ e.preventDefault(); if($('#i-val')) saveIncome(); else if($('#e-amt')) saveEntry(); else if($('#c-n')&&$('[data-act="cat-add-save"]')) saveCatAdd(); else if($('#c-n')) saveCatEdit(); } });
 
 /* ================= arranque ================= */
 const dlgOpen=()=>{ const d=$('#dlg'); return d&&d.open; };
