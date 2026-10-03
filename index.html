@@ -50,6 +50,7 @@ h1,h2,h3,p{margin:0}
 .navi[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
 .sync{margin-top:auto;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--ok);background:transparent;border:0;text-align:left}
 .sync.homesync{margin-top:0}
+.ver{display:block;padding:0 12px;font-size:13px;font-weight:600;color:var(--muted)}
 .sync.busy{color:var(--muted)} .sync.warn{color:var(--warn);background:var(--warn-bg)} .sync.err{color:var(--bad);background:var(--bad-bg)}
 .main{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column}
 .scroll{flex:1 1 0;min-height:0;overflow-y:auto;padding:28px 32px;-webkit-overflow-scrolling:touch}
@@ -117,10 +118,10 @@ table.t{border-collapse:collapse;width:100%}
 .home{height:100%;display:flex;flex-direction:column;gap:20px;padding:max(36px,env(safe-area-inset-top)) 40px 32px;overflow-y:auto}
 .home .hd{flex:none;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
 .home .h1{font-size:44px}
-.home section{flex:1 1 0;min-height:200px;display:flex;flex-direction:column}
+.home section{flex:none;display:flex;flex-direction:column}
 .home h2{margin:0 0 10px;font-size:18px;color:var(--muted)}
-.tiles{flex:1 1 0;min-height:0;display:flex;flex-wrap:wrap;gap:16px}
-.tile{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:22px 26px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);text-align:left;text-decoration:none}
+.tiles{display:flex;flex-wrap:wrap;gap:16px}
+.tile{flex:1 1 220px;min-width:0;min-height:230px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:22px 26px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);text-align:left;text-decoration:none}
 .tile .ico{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;background:var(--accent-soft);color:var(--accent)}
 .tile .tt{font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-.01em} .tile .td{font-size:16px;color:var(--muted)}
 .tile .st{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);width:100%;font-size:16px;font-weight:600}
@@ -184,7 +185,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.0';
+const APP_VERSION='1.1';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -494,7 +495,7 @@ function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
   const nav=NAV.map(([k,l,i])=>`<a class="navi" href="#/${k}" ${k===act?'aria-current="page"':''}>${icon(i)}${l}</a>`).join('');
-  return `<div class="app"><aside class="side"><p class="brand">Cuentas</p><button class="addbtn" data-act="add">${icon('plus')}Apuntar gasto</button><nav class="nav" aria-label="Secciones">${nav}</nav>${syncBtn('side')}</aside>
+  return `<div class="app"><aside class="side"><p class="brand">Cuentas</p><button class="addbtn" data-act="add">${icon('plus')}Apuntar gasto</button><nav class="nav" aria-label="Secciones">${nav}</nav>${syncBtn('side')}<span class="ver">Versión ${APP_VERSION}</span></aside>
     <div class="main"><div class="topbar"><button class="sq" data-act="menu" aria-label="Menú">${icon('menu')}</button><p class="brand">Cuentas</p></div>
     <div class="scroll" id="scroll"><div class="col">${main}</div></div>${actions?`<div class="bar">${actions}</div>`:''}</div></div>`;
 }
@@ -555,7 +556,7 @@ function inicioView(){
   const tc=topConcept(y), pc=patCalc(S.db), lastP=pc[pc.length-1];
   const nmStatus=ms.pending?`Pendiente: ${mlow(+ms.pending.slice(5,7)-1)}`:`Al día · último mes: ${mlow(+ms.last.slice(5,7)-1)}`;
   const d=new Date(); const dtxt=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  return `<div class="home"><header class="hd"><div><h1 class="h1">Cuentas</h1><p class="sub" style="font-size:18px">${esc(dtxt.charAt(0).toUpperCase()+dtxt.slice(1))}</p></div>
+  return `<div class="home"><header class="hd"><div><h1 class="h1">Cuentas</h1><p class="sub" style="font-size:18px">${esc(dtxt.charAt(0).toUpperCase()+dtxt.slice(1))} · <span class="ver" style="margin:0;padding:0">Versión ${APP_VERSION}</span></p></div>
    <div class="row c" style="gap:20px">${syncBtn('home')}<a class="btn alt" href="#/datos">${icon('gear')}Datos y copias</a><button class="btn" data-act="add">${icon('plus')}Apuntar gasto</button></div></header>
    <section><h2>Introducir datos</h2><div class="tiles">${tile('#/nuevo','plus','Nuevo mes','Carga un mes con su extracto: el pasado o cualquier mes anterior. Extractos, saldos e ingresos.',nmStatus,ms.pending?'warn':'ok')}${tile(null,'plus','Apuntar un gasto','Un gasto suelto, a mano: efectivo, propinas, lo que no sale en el banco.','')}</div></section>
    <section><h2>Consultar</h2><div class="tiles">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto llevas gastado en cada cosa: todo el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía')}
