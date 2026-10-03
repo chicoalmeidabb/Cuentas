@@ -8,13 +8,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Cuentas</title>
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ3VlbnRhcyIsInNob3J0X25hbWUiOiJDdWVudGFzIiwic3RhcnRfdXJsIjoiaHR0cHM6Ly9jaGljb2FsbWVpZGFiYi5naXRodWIuaW8vQ3VlbnRhcy8iLCJzY29wZSI6Imh0dHBzOi8vY2hpY29hbG1laWRhYmIuZ2l0aHViLmlvL0N1ZW50YXMvIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiI2YyZjVmOSIsInRoZW1lX2NvbG9yIjoiIzFkNGZkNyIsImljb25zIjpbeyJzcmMiOiJodHRwczovL2NoaWNvYWxtZWlkYWJiLmdpdGh1Yi5pby9DdWVudGFzL2ljb24tMTkyLnBuZyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifSx7InNyYyI6Imh0dHBzOi8vY2hpY29hbG1laWRhYmIuZ2l0aHViLmlvL0N1ZW50YXMvaWNvbi01MTIucG5nIiwic2l6ZXMiOiI1MTJ4NTEyIiwidHlwZSI6ImltYWdlL3BuZyJ9XX0=">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>window.__ip=null;
+window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__ip=e;document.querySelectorAll("[data-install]").forEach(function(b){b.hidden=false;});});
+window.addEventListener("appinstalled",function(){window.__ip=null;document.querySelectorAll("[data-install]").forEach(function(b){b.hidden=true;});if(window.toast)toast("App instalada correctamente");});</script>
 <style>
 :root{
   --bg:#f2f5f9; --surface:#ffffff; --ink:#15202e; --muted:#586577; --line:#d8dee8;
@@ -116,7 +119,8 @@ table.t{border-collapse:collapse;width:100%}
 
 /* inicio */
 .home{height:100%;display:flex;flex-direction:column;gap:20px;padding:max(36px,env(safe-area-inset-top)) 40px 32px;overflow-y:auto}
-.home .hd{flex:none;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.home .hd{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px}
+.home .hd .acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:20px}
 .home .h1{font-size:44px}
 .home section{flex:none;display:flex;flex-direction:column}
 .home h2{margin:0 0 10px;font-size:18px;color:var(--muted)}
@@ -166,6 +170,9 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 .center{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px}
 .setup{width:min(640px,100%);display:flex;flex-direction:column;gap:18px}
 .chart{width:100%;height:auto;display:block}
+.logo{display:block;width:112px;height:112px;border-radius:50%;object-fit:cover;flex:none}
+.side .logo{width:96px;height:96px;margin:0 auto}
+.setup .logo{width:112px;height:112px;margin:0 auto}
 
 @media (max-width:900px){
   .side{position:fixed;z-index:40;left:0;top:0;bottom:0;width:260px;transform:translateX(-102%);transition:transform .2s;box-shadow:0 0 40px rgba(0,0,0,.3)}
@@ -174,6 +181,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
   .topbar .brand{margin:0;font-size:20px}
   .scroll{padding:20px 16px} .bar{padding:12px 16px}
   .home{padding:24px 16px} .h1{font-size:28px} .home .h1{font-size:34px}
+  .home .hd{grid-template-columns:1fr} .home .hd .logo{order:-1;margin:0 auto} .home .hd .acts{justify-content:flex-start}
   .mv .c{display:none}
 }
 @media (prefers-reduced-motion:reduce){.side,.toast{transition:none}}
@@ -185,7 +193,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.1';
+const APP_VERSION='1.3';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -495,7 +503,7 @@ function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
   const nav=NAV.map(([k,l,i])=>`<a class="navi" href="#/${k}" ${k===act?'aria-current="page"':''}>${icon(i)}${l}</a>`).join('');
-  return `<div class="app"><aside class="side"><p class="brand">Cuentas</p><button class="addbtn" data-act="add">${icon('plus')}Apuntar gasto</button><nav class="nav" aria-label="Secciones">${nav}</nav>${syncBtn('side')}<span class="ver">Versión ${APP_VERSION}</span></aside>
+  return `<div class="app"><aside class="side"><img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><p class="brand" style="text-align:center">Cuentas</p><button class="addbtn" data-act="add">${icon('plus')}Apuntar gasto</button><nav class="nav" aria-label="Secciones">${nav}</nav>${syncBtn('side')}<span class="ver">Versión ${APP_VERSION}</span></aside>
     <div class="main"><div class="topbar"><button class="sq" data-act="menu" aria-label="Menú">${icon('menu')}</button><p class="brand">Cuentas</p></div>
     <div class="scroll" id="scroll"><div class="col">${main}</div></div>${actions?`<div class="bar">${actions}</div>`:''}</div></div>`;
 }
@@ -517,7 +525,7 @@ function render(top){
 
 /* ================= conexión ================= */
 function setupHTML(){
-  return `<div class="center"><div class="setup"><div><p class="h1">Cuentas</p><p class="sub">Conecta la app con tu hoja de Google. Solo se hace una vez en cada dispositivo.</p></div>
+  return `<div class="center"><div class="setup"><img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><div><p class="h1">Cuentas</p><p class="sub">Conecta la app con tu hoja de Google. Solo se hace una vez en cada dispositivo.</p></div>
   <section class="card col" style="gap:16px">
    <div class="field"><label for="cfgurl">Dirección del script (termina en /exec)</label><input id="cfgurl" class="inp" type="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(S.cfgDraft?S.cfgDraft.url:'')}"></div>
    <div class="field"><label for="cfgkey">Tu clave</label><input id="cfgkey" class="inp" type="password" autocomplete="off" placeholder="La que pusiste en el script"></div>
@@ -557,7 +565,7 @@ function inicioView(){
   const nmStatus=ms.pending?`Pendiente: ${mlow(+ms.pending.slice(5,7)-1)}`:`Al día · último mes: ${mlow(+ms.last.slice(5,7)-1)}`;
   const d=new Date(); const dtxt=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return `<div class="home"><header class="hd"><div><h1 class="h1">Cuentas</h1><p class="sub" style="font-size:18px">${esc(dtxt.charAt(0).toUpperCase()+dtxt.slice(1))} · <span class="ver" style="margin:0;padding:0">Versión ${APP_VERSION}</span></p></div>
-   <div class="row c" style="gap:20px">${syncBtn('home')}<a class="btn alt" href="#/datos">${icon('gear')}Datos y copias</a><button class="btn" data-act="add">${icon('plus')}Apuntar gasto</button></div></header>
+   <img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><div class="acts">${syncBtn('home')}<button class="btn alt" data-act="install" data-install ${window.__ip?'':'hidden'}>${icon('up')}Instalar app</button><a class="btn alt" href="#/datos">${icon('gear')}Datos y copias</a><button class="btn" data-act="add">${icon('plus')}Apuntar gasto</button></div></header>
    <section><h2>Introducir datos</h2><div class="tiles">${tile('#/nuevo','plus','Nuevo mes','Carga un mes con su extracto: el pasado o cualquier mes anterior. Extractos, saldos e ingresos.',nmStatus,ms.pending?'warn':'ok')}${tile(null,'plus','Apuntar un gasto','Un gasto suelto, a mano: efectivo, propinas, lo que no sale en el banco.','')}</div></section>
    <section><h2>Consultar</h2><div class="tiles">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto llevas gastado en cada cosa: todo el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía')}
    ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`)}
@@ -898,6 +906,7 @@ function datosView(){
     <p class="muted" style="font-size:15px">Hoja: ${esc(S.sync.hoja||'tu hoja de Google')} · Dirección: ${esc(short)}<br>Versión de la app ${APP_VERSION}${S.sync.version?' · Versión del script '+esc(S.sync.version):''}${S.sync.last?' · Última sincronización: '+new Date(S.sync.last).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):''}</p>
     <div class="row" style="margin-top:14px"><button class="btn alt" data-act="resync">Sincronizar ahora</button><button class="btn alt" data-act="reconf">Cambiar conexión</button></div>
     ${pend?`<p class="note" style="margin-top:14px">${pend} cambios esperando a guardarse en tu hoja.</p><div class="row" style="margin-top:10px"><button class="btn alt sm" data-act="resync">Reintentar</button><button class="btn danger sm" data-act="dropoutbox">Descartar lo pendiente</button></div>`:''}`)}
+  ${card(`<div class="h2">Instalar la app</div><p class="muted" style="margin-bottom:12px">Para abrir Cuentas desde un icono, a pantalla completa.</p><button class="btn" data-act="install" data-install ${window.__ip?'':'hidden'}>Instalar app</button><p class="muted" ${window.__ip?'hidden':''} style="font-size:14px">Si no aparece el botón, Chrome no ofrece instalarla ahora (ya está instalada o falta recargar la página).</p>`)}
   ${card(`<div class="h2">Copia de seguridad</div><p class="muted" style="margin-bottom:12px">Tus datos ya están en tu hoja de Drive. Además puedes bajarte una copia en Excel y guardarla donde quieras.</p><div class="row"><button class="btn" data-act="export">Descargar copia en Excel</button><label class="btn alt"><input type="file" class="sr" accept=".xlsx" data-chg="restore">Cargar una copia</label></div>`)}
   ${card(`<div class="h2">Categorías</div><div class="chips" style="margin:8px 0 14px">${S.db.cats.map(c=>`<span class="tag gray" style="font-size:14px;padding:4px 12px">${esc(c.k)} ${esc(c.n)}</span>`).join('')}</div><div class="row e"><div class="field"><label for="ncn">Nueva categoría</label><input id="ncn" class="inp" style="width:240px;font-weight:500" placeholder="Nombre"></div><div class="field"><label for="nck">Letra</label><input id="nck" class="inp" style="width:90px" maxlength="1" placeholder="W"></div><button class="btn alt" data-act="addcat">Añadir</button></div><p class="note err" id="ncerr" hidden style="margin-top:12px"></p>`)}
   ${card(`<div class="h2">Posiciones del patrimonio</div><p class="muted" style="margin-bottom:8px">Archivar una posición (por ejemplo, una cuenta cerrada) deja de contarla desde esa fecha, pero conserva su historia.</p>${pos}<div style="margin-top:14px"><button class="btn alt" data-act="posadd">Añadir posición</button></div>`)}
@@ -1002,6 +1011,8 @@ const ACT={
   pickmonth(el){ const keep=S.wiz; wizInit(el.dataset.ym); go('nuevo/1'); },
   wizsave(el){ wizSave(el.dataset.mode); },
   fotosave(){ fotoSave(); },
+  install(){ const ip=window.__ip; if(!ip){ toast('Chrome no ofrece instalar ahora. Quita el acceso directo viejo y recarga la página.'); return; }
+    ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
   captura(){ toast('Leer capturas todavía no está disponible. Escribe los valores, o pásame la captura en el chat.'); },
   connect(){ connect(); },
   retry(){ pull().then(()=>render(true)); },
