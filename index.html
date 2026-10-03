@@ -200,7 +200,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.4';
+const APP_VERSION='1.5';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -857,13 +857,13 @@ const GROUPS=['Metálico','Acciones','Fondos'];
 function patView(){
   const pc=patCalc(S.db);
   if(!pc.length) return shell('pat',`<header class="row c" style="justify-content:space-between"><h1 class="h1">Patrimonio</h1><a class="btn" href="#/foto">Nueva foto</a></header><div class="empty">Todavía no hay fotos. Pulsa Nueva foto para apuntar tus saldos de hoy.</div>`,'');
-  const last=pc[pc.length-1], yr=last.f.slice(0,4), yp=pc.filter(p=>p.f.startsWith(yr)), base=yp[0], prev=pc.length>1?pc[pc.length-2]:null;
+  const yrs=[...new Set(pc.map(p=>p.f.slice(0,4)))], yr=yrs.includes(String(S.year))?String(S.year):yrs[yrs.length-1], yp=pc.filter(p=>p.f.startsWith(yr)), last=yp[yp.length-1], base=yp[0], li=pc.indexOf(last), prev=li>0?pc[li-1]:null;
   const dB=base&&base!==last?round2(last.total-base.total):null, dP=prev?round2(last.total-prev.total):null;
   const stale=last.active.filter(p=>!last.vals[p.id].real);
   const gt=(ph,g)=>round2(sum(ph.active.filter(p=>p.g===g).map(p=>ph.vals[p.id].v)));
   const groups=[...GROUPS,...[...new Set(S.db.pos.map(p=>p.g))].filter(g=>g&&!GROUPS.includes(g))];
   // gráfico
-  const W=760,H=300,L=64,R=12,T=18,B=34, vals=pc.map(p=>p.total), lo=Math.floor((Math.min(...vals)-1500)/5000)*5000, hi=Math.ceil((Math.max(...vals)+1500)/5000)*5000;
+  const W=760,H=300,L=64,R=12,T=18,B=34, vals=yp.map(p=>p.total), lo=Math.floor((Math.min(...vals)-1500)/5000)*5000, hi=Math.ceil((Math.max(...vals)+1500)/5000)*5000;
   const t0=Date.UTC(+yr,0,1), t1=Date.UTC(+yr,11,31), X=f=>{ const p=parseDate(f); return L+(Date.UTC(p.y,p.m-1,p.d)-t0)/(t1-t0)*(W-L-R); }, Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
   let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del capital">`;
   for(let v=lo;v<=hi;v+=5000) svg+=`<line x1="${L-6}" x2="${W-R+6}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"></line><text x="0" y="${(Y(v)+4).toFixed(1)}" font-size="13" fill="var(--muted)">${nf0.format(v/1000)} mil</text>`;
@@ -887,7 +887,7 @@ function patView(){
       body+=`<tr><td class="l" style="${sticky}font-weight:500">${esc(p.n)}${p.hasta?`<span class="muted" style="display:block;font-size:12px">cerrada el ${dayShort(p.hasta)}</span>`:''}</td>${yp.map(ph=>{ const x=ph.vals[p.id]; return !x?'<td></td>':x.real?`<td>${nf0.format(Math.round(x.v))}</td>`:`<td style="background:var(--warn-bg);color:var(--warn);font-weight:700" title="Sin valor en esta foto: se usa el último (${nf0.format(Math.round(x.v))})">—</td>`; }).join('')}<td style="border-left:1px solid var(--line);font-weight:600" class="${d!=null&&d>=0?'pos':'neg'}">${d!=null&&base!==last?sgn(d,0):'—'}</td></tr>`; }); });
   body+=`<tr><td class="l" style="${sticky}font-weight:700;border-top:2px solid var(--ink);font-size:17px">Capital total</td>${yp.map(ph=>`<td style="font-weight:700;border-top:2px solid var(--ink);font-size:17px">${nf0.format(Math.round(ph.total))}</td>`).join('')}<td style="font-weight:700;border-top:2px solid var(--ink);border-left:1px solid var(--line);font-size:17px" class="${dB>=0?'pos':'neg'}">${dB!=null?sgn(dB,0):''}</td></tr>
     <tr><td class="l" style="${sticky}color:var(--muted);font-size:14px">Posiciones con dato</td>${yp.map(ph=>`<td style="font-size:14px;color:${ph.real<ph.count?'var(--warn)':'var(--muted)'};font-weight:${ph.real<ph.count?700:400}">${ph.real} de ${ph.count}</td>`).join('')}<td></td></tr>`;
-  const main=`<header class="row e" style="justify-content:space-between"><div><h1 class="h1">Patrimonio</h1><p class="sub">Última foto: ${dayShort(last.f)} ${last.f.slice(0,4)}${last.c?', cierra '+mlow(+last.c.slice(5,7)-1):''} · ${last.real} de ${last.count} posiciones al día</p></div><div class="row"><button class="btn alt" data-act="export">Exportar</button><a class="btn" href="#/foto">Nueva foto</a></div></header>
+  const main=`<header class="row e" style="justify-content:space-between"><div><h1 class="h1">Patrimonio</h1><p class="sub">Última foto${yr!==yrs[yrs.length-1]?' de '+yr:''}: ${dayShort(last.f)} ${last.f.slice(0,4)}${last.c?', cierra '+mlow(+last.c.slice(5,7)-1):''} · ${last.real} de ${last.count} posiciones al día</p></div><div class="row c">${yrs.length>1?stepper(yr,96,'patprev','patnext'):''}<button class="btn alt" data-act="export">Exportar</button><a class="btn" href="#/foto">Nueva foto</a></div></header>
    ${stale.length?`<div class="note row c" style="font-size:16px"><span class="grow1" style="min-width:300px">${stale.length} posiciones sin actualizar en la última foto: <b>${stale.map(p=>esc(p.n)).join(', ')}</b>. Para sumar se usa su último valor.</span><a class="linkbtn" href="#/foto" style="color:var(--warn)">Actualizarlas ahora</a></div>`:''}
    <div class="kpis">${kpi('Capital total',eur(last.total),last.active.length+' posiciones')}${dB!=null?kpi('Desde la foto de enero',sgn(dB),pct1(dB/base.total*100)+' respecto a '+eur0(base.total)+' €',dB>=0?'pos':'neg','<p class="muted" style="font-size:13px;margin-top:8px">Incluye lo que has metido o sacado.</p>'):''}${dP!=null?kpi('Desde la foto anterior',sgn(dP),dayShort(prev.f)+': '+eur0(prev.total)+' €',dP>=0?'pos':'neg'):''}</div>
    <div class="row" style="align-items:stretch">${card(`<div class="h2" style="margin-bottom:12px">Evolución del capital</div>${svg}<p class="muted" style="font-size:14px;margin-top:10px">Cada punto es el día en que tomaste los saldos. Línea discontinua: meses sin foto. Punto vacío: foto con pocas posiciones.</p>`,'style="flex:2 1 520px;min-width:0"')
@@ -925,11 +925,11 @@ function conceptosView(){
   const sin=st.get('')||{n:0,t:0};
   const rows=S.db.cats.map(c=>{
     const s=st.get(c.n)||{n:0,t:0};
-    return `<div class="crow ${c.a?'':'off'}"><span class="key">${esc(c.k.replace('=',''))}</span><span class="nm"><b>${esc(c.n)}${c.a?'':' <span class="tag gray">Oculto</span>'}</b><span>${s.n?`${s.n} movimientos · ${eur(s.t)}`:'Sin movimientos'}</span></span><button class="btn alt sm" data-act="catedit" data-k="${esc(c.k)}">Editar</button><button class="btn alt sm" data-act="cattoggle" data-k="${esc(c.k)}">${c.a?'Ocultar':'Mostrar'}</button></div>`;
+    return `<div class="crow ${c.a?'':'off'}"><span class="key">${esc(c.k.replace('=',''))}</span><span class="nm"><b>${esc(c.n)}${c.a?'':' <span class="tag gray">Oculto</span>'}</b><span>${s.n?`${s.n} ${s.n===1?'movimiento':'movimientos'} · ${eur(s.t)}`:'Sin movimientos'}</span></span><button class="btn alt sm" data-act="catedit" data-k="${esc(c.k)}">Editar</button><button class="btn alt sm" data-act="cattoggle" data-k="${esc(c.k)}">${c.a?'Ocultar':'Mostrar'}</button></div>`;
   }).join('');
   const aviso=scriptOk()?'':`<p class="note">Para cambiar nombres, fusionar o borrar conceptos hay que actualizar el script de Google a la versión 1.1. Añadir y ocultar funcionan ya.</p>`;
   return shell('conceptos',`<header class="row c" style="justify-content:space-between"><div><h1 class="h1">Conceptos</h1><p class="sub">Los tipos de gasto. Cambia el nombre, añade nuevos u ocúltalos.</p></div><button class="btn" data-act="catadd">${icon('plus')}Añadir concepto</button></header>
-   ${aviso}${sin.n?`<div class="note row c"><span class="grow1" style="min-width:260px"><b>${sin.n} movimientos sin concepto</b> (${eur(sin.t)}).</span><a class="linkbtn" href="#/movs" data-act="catnone" style="color:var(--warn)">Revisarlos</a></div>`:''}
+   ${aviso}${sin.n?`<div class="note row c"><span class="grow1" style="min-width:260px"><b>${sin.n} ${sin.n===1?'movimiento sin concepto':'movimientos sin concepto'}</b> (${eur(sin.t)}).</span><a class="linkbtn" href="#/movs" data-act="catnone" style="color:var(--warn)">Revisarlos</a></div>`:''}
    ${card(`<div class="h2" style="margin-bottom:6px">${S.db.cats.length} conceptos</div><p class="muted" style="font-size:14px;margin-bottom:6px">Ocultar un concepto lo quita de las listas al apuntar gastos, pero sus movimientos se conservan.</p>${rows}`)}`,'');
 }
 function openCatAdd(){
@@ -1082,6 +1082,8 @@ const ACT={
   fotosave(){ fotoSave(); },
   install(){ const ip=window.__ip; if(!ip){ toast('Chrome no ofrece instalar ahora. Quita el acceso directo viejo y recarga la página.'); return; }
     ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
+  patprev(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c>0){ S.year=+ys[c-1]; render(); } },
+  patnext(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c<ys.length-1){ S.year=+ys[c+1]; render(); } },
   captura(){ toast('Leer capturas todavía no está disponible. Escribe los valores, o pásame la captura en el chat.'); },
   connect(){ connect(); },
   retry(){ pull().then(()=>render(true)); },
