@@ -138,6 +138,7 @@ table.t{border-collapse:collapse;width:100%}
 .mh span:last-child{font-weight:500;color:var(--muted);font-size:14px}
 .rowbtn{background:none;border:0;padding:6px 0;font:inherit;font-weight:inherit;color:inherit;text-align:left;cursor:pointer;min-height:36px}
 .t tr[data-act]:hover td{background:var(--accent-soft)}
+.vac{font-size:15px}
 .empty{padding:28px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
 
 /* inicio */
@@ -152,7 +153,7 @@ table.t{border-collapse:collapse;width:100%}
 .home h2{margin:0 0 8px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
 .tiles{display:grid;gap:14px}
 .tiles.two{grid-template-columns:3fr 2fr}
-.tiles.six{grid-template-columns:repeat(3,1fr)}
+.tiles.six{grid-template-columns:repeat(4,1fr)}
 .tile{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);text-align:left;text-decoration:none}
 .tile .ico{display:flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent)}
 .tile .tt{font-size:20px;line-height:1.15;font-weight:700;letter-spacing:-.01em} .tile .td{font-size:14px;line-height:1.35;color:var(--muted)}
@@ -206,7 +207,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 .side .logo{width:96px;height:96px;margin:0 auto}
 .setup .logo{width:112px;height:112px;margin:0 auto}
 
-@media (max-width:1100px) and (min-width:901px){ .tiles.six{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:1100px) and (min-width:901px){ .tiles.six{grid-template-columns:repeat(3,1fr)} }
 @media (max-width:900px){
   .side{position:fixed;z-index:40;left:0;top:0;bottom:0;width:260px;transform:translateX(-102%);transition:transform .2s;box-shadow:0 0 40px rgba(0,0,0,.3)}
   body.menu .side{transform:none}
@@ -226,7 +227,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.9';
+const APP_VERSION='2.0';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -425,7 +426,7 @@ const S={
   sync:{state:'ok',msg:'',last:null,version:'',hoja:''},
   route:{name:'inicio',params:{}}, wiz:null, foto:null,
   year:new Date().getFullYear(), sort:'orden',
-  f:{q:'',cat:'',month:0,limit:80}, gc:{concept:null,month:null,sel:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}
+  f:{q:'',cat:'',month:0,limit:80,vac:false}, gc:{concept:null,month:null,sel:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}
 };
 
 async function api(action,payload,timeoutMs=60000){
@@ -521,6 +522,7 @@ const ICONS={
  sync:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path>',
  menu:'<path d="M4 6h16M4 12h16M4 18h16"></path>',
  bars:'<path d="M5 20v-9M12 20V5M19 20v-6"></path>',
+ sun:'<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>',
  tag:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path><path d="M7.5 7.5h.01"></path>'
 };
 const icon=(n,s)=>`<svg class="ic${s==='s'?' s':''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
@@ -536,8 +538,8 @@ const bar=(w,h=12,c)=>`<div class="meter" style="height:${h}px"><i style="width:
 const catOpts=(sel,extra='')=>`${extra}`+S.db.cats.filter(c=>c.a).map(c=>`<option value="${esc(c.n)}"${c.n===sel?' selected':''}>${esc(c.n)}</option>`).join('');
 const catName=c=>c||'Sin categoría';
 
-const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear']];
-const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',datos:'datos'};
+const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear']];
+const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',datos:'datos'};
 function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='home'?' homesync':''}" data-sync="${where||'side'}" data-go="datos">${icon(S.sync.ico||'check','s')}<span>${esc(S.sync.txt||'Todo guardado')}</span></button>`; }
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
@@ -605,6 +607,7 @@ function tileC(href,ic,title,desc,status,pill){
   const inner=`<span class="ico">${icon(ic)}</span><span class="tx"><span class="tt">${title}</span><span class="td">${desc}</span></span>${st}`;
   return href?`<a class="tile compact" href="${href}">${inner}</a>`:`<button class="tile compact" data-act="add">${inner}</button>`;
 }
+function vacResumen(){ const D=vacDatos(S.year); return D.per.length?`${S.year}: ${eur0(D.tot)} € en ${D.dias} días`:'Sin fechas marcadas'; }
 function inicioView(){
   const ms=monthStatus(), y=S.year, ag=aggYear(S.db.movs,y), G=sum(ag.tot), I=sum(Object.entries(S.db.ingresos).filter(([k])=>k.startsWith(y+'-')).map(([,v])=>v));
   const tc=topConcept(y), pc=patCalc(S.db), lastP=pc[pc.length-1];
@@ -616,6 +619,7 @@ function inicioView(){
    <section><h2>Consultar</h2><div class="tiles six">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto gastas en cada cosa: el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía','','big')}
    ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`,'','big')}
    ${tile('#/comparar','bars','Comparar años','Este año frente al anterior, hasta el mismo mes.',cmpResumen(),'','big')}
+   ${tile('#/vacaciones','sun','Gastos de vacaciones','Marca unas fechas y mira cuánto has gastado en ellas.',vacResumen(),'','big')}
    ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`,'','big')}
    ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía','','big')}
    ${tile('#/conceptos','tag','Conceptos','Cambia el nombre de los conceptos o añade nuevos.',`${S.db.cats.filter(x=>x.a).length} conceptos`,'','big')}</div></section></div>`;
@@ -824,10 +828,10 @@ function gastoView(arg){
     const ya=T+(H-T-B)-avg/hi*(H-T-B); svg+=`<line x1="${L}" x2="${W-R}" y1="${ya.toFixed(1)}" y2="${ya.toFixed(1)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="6 5"></line><text x="${W-R}" y="${(ya-6).toFixed(1)}" font-size="13" text-anchor="end" fill="var(--muted)">Media ${eur0(avg)} €</text>`;
     for(let m=0;m<12;m++){ const x=L+m*bw, v=arr[m]; if(v>0){ const h=v/hi*(H-T-B), hot=v===mx; svg+=`<rect x="${(x+bw*.16).toFixed(1)}" y="${(T+(H-T-B)-h).toFixed(1)}" width="${(bw*.68).toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${hot?'var(--accent)':'var(--accent-2)'}"></rect><text x="${(x+bw/2).toFixed(1)}" y="${(T+(H-T-B)-h-7).toFixed(1)}" font-size="13" font-weight="${hot?700:500}" text-anchor="middle" fill="var(--ink)">${eur0(v)}</text>`; } svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-8}" font-size="13" text-anchor="middle" fill="var(--muted)">${MSHORT[m]}</text>`; }
     svg+='</svg>';
-    let list='', mcur='';
+    const rsV=vacRangos(); let list='', mcur='';
     movs.forEach(m=>{ const mk=m.f.slice(5,7);
       if(mk!==mcur){ mcur=mk; const su=movs.filter(x=>x.f.slice(5,7)===mk); list+=`<div class="mh"><span>${MONTHS[+mk-1]}</span><span>${su.length} ${su.length===1?'gasto':'gastos'} · ${eur(round2(sum(su.map(x=>x.i))))}</span></div>`; }
-      list+=`<button class="mv" data-act="edit" data-id="${esc(m.id)}"><span class="d">${m.f.slice(8,10)}/${m.f.slice(5,7)}</span><span class="t">${esc(m.d||'(sin descripción)')}</span><span class="c">${esc(m.cu||'')}</span><span class="a">${eur(m.i)}</span></button>`; });
+      list+=`<button class="mv" data-act="edit" data-id="${esc(m.id)}"><span class="d">${m.f.slice(8,10)}/${m.f.slice(5,7)}</span><span class="t">${esVac(m,rsV)?'<span class="vac" title="Vacaciones">🏖</span> ':''}${esc(m.d||'(sin descripción)')}</span><span class="c">${esc(m.cu||'')}</span><span class="a">${eur(m.i)}</span></button>`; });
     return shell('gasto',gcHead('uno','')+card(`<p style="font-weight:600;margin-bottom:12px">Elige un concepto</p><div class="chips">${chips}</div>`)
       +`<div class="kpis">${kpi(esc(c)+' en '+S.year,eur(tc),pct1(tc/YT*100)+' de todos los gastos')}${kpi('Media al mes',eur(tc/nm),'enero a '+mlow(nm-1))}${kpi('Movimientos',String(movs.length),movs.length?'importe medio '+eur(tc/movs.length):'')}${kpi('Mes más alto',tc?MONTHS[hm]:'—',tc?eur(arr[hm]):'')}</div>`
       +card(`<div class="h2" style="margin-bottom:12px">Mes a mes: ${esc(c)}</div>${svg}`)
@@ -954,21 +958,22 @@ function compararView(){
 /* ================= movimientos ================= */
 function filteredMovs(){
   const q=norm(S.f.q), pre=S.year+'-'; let rows=S.db.movs.filter(r=>r.f.startsWith(pre));
+  if(S.f.vac){ const rs=vacRangos(); rows=rows.filter(r=>esVac(r,rs)); }
   if(S.f.month) rows=rows.filter(r=>+r.f.slice(5,7)===S.f.month);
   if(S.f.cat==='__none__') rows=rows.filter(r=>!r.c); else if(S.f.cat) rows=rows.filter(r=>r.c===S.f.cat);
   if(q) rows=rows.filter(r=>norm(r.d).includes(q)||norm(r.c).includes(q)||norm(r.cu).includes(q));
   return rows.sort((a,b)=>b.f.localeCompare(a.f)||b.id.localeCompare(a.id));
 }
 function movListHTML(){
-  const rows=filteredMovs(), shown=rows.slice(0,S.f.limit), tot=round2(sum(rows.map(r=>r.i)));
-  return `<p class="muted" id="movsum">${rows.length} movimientos · ${eur(tot)}</p>`+(shown.length?shown.map(m=>`<button class="mv" data-act="edit" data-id="${esc(m.id)}"><span class="d">${m.f.slice(8,10)}/${m.f.slice(5,7)}</span><span class="t">${esc(m.d||'(sin descripción)')}</span><span class="c">${esc(catName(m.c))}</span><span class="a">${eur(m.i)}</span></button>`).join(''):'<div class="empty">No hay movimientos con estos filtros.</div>')
+  const rs=vacRangos(), rows=filteredMovs(), shown=rows.slice(0,S.f.limit), tot=round2(sum(rows.map(r=>r.i)));
+  return `<p class="muted" id="movsum">${rows.length} movimientos · ${eur(tot)}</p>`+(shown.length?shown.map(m=>`<button class="mv" data-act="edit" data-id="${esc(m.id)}"><span class="d">${m.f.slice(8,10)}/${m.f.slice(5,7)}</span><span class="t">${esVac(m,rs)?'<span class="vac" title="Vacaciones">🏖</span> ':''}${esc(m.d||'(sin descripción)')}</span><span class="c">${esc(catName(m.c))}</span><span class="a">${eur(m.i)}</span></button>`).join(''):'<div class="empty">No hay movimientos con estos filtros.</div>')
     +(rows.length>shown.length?`<p style="text-align:center;margin-top:12px"><button class="btn alt" data-act="more">Mostrar más (${rows.length-shown.length})</button></p>`:'');
 }
 function movsView(){
   const cat=`<option value="">Todas las categorías</option><option value="__none__"${S.f.cat==='__none__'?' selected':''}>Sin categoría</option>`+S.db.cats.map(c=>`<option value="${esc(c.n)}"${S.f.cat===c.n?' selected':''}>${esc(c.n)}</option>`).join('');
   const mon='<option value="0">Todo el año</option>'+MONTHS.map((n,i)=>`<option value="${i+1}"${S.f.month===i+1?' selected':''}>${n}</option>`).join('');
   return shell('movs',`<header class="row c" style="justify-content:space-between"><h1 class="h1">Movimientos</h1>${yearStepper()}</header>
-   <div class="row"><input class="inp grow1" style="min-width:220px;font-weight:500" id="q" type="search" data-inp="q" placeholder="Buscar por descripción" value="${esc(S.f.q)}" aria-label="Buscar"><select class="sel" data-chg="fcat" aria-label="Categoría" style="font-weight:500">${cat}</select><select class="sel" data-chg="fmonth" aria-label="Mes" style="font-weight:500">${mon}</select></div>
+   <div class="row"><input class="inp grow1" style="min-width:220px;font-weight:500" id="q" type="search" data-inp="q" placeholder="Buscar por descripción" value="${esc(S.f.q)}" aria-label="Buscar"><select class="sel" data-chg="fcat" aria-label="Categoría" style="font-weight:500">${cat}</select><select class="sel" data-chg="fmonth" aria-label="Mes" style="font-weight:500">${mon}</select><button class="chip" data-act="fvac" aria-pressed="${!!S.f.vac}">🏖 Solo vacaciones</button></div>
    <div id="movlist">${movListHTML()}</div>`,'');
 }
 
@@ -1165,6 +1170,77 @@ function saveCatEdit(){
   commit('renameCat',{clave:c.k,anterior:c.n,nombre:nuevo}); closeDlg(); render(); toast('Nombre cambiado');
 }
 
+/* ================= gastos de vacaciones ================= */
+// Los rangos se guardan en tu hoja (pestaña Config, clave "vacaciones"): [{id,d,h}] con fechas AAAA-MM-DD
+function vacRangos(){
+  try{ const a=JSON.parse((S.db.cfg&&S.db.cfg.vacaciones)||'[]'); return Array.isArray(a)?a.filter(r=>r&&r.d&&r.h&&r.d<=r.h).sort((x,y)=>x.d.localeCompare(y.d)):[]; }catch(e){ return []; }
+}
+const esVac=(m,rs)=>(rs||vacRangos()).some(r=>m.f>=r.d&&m.f<=r.h);
+const diaMas=(iso,n)=>{ const p=parseDate(iso), t=new Date(Date.UTC(p.y,p.m-1,p.d+n)); return t.getUTCFullYear()+'-'+pad2(t.getUTCMonth()+1)+'-'+pad2(t.getUTCDate()); };
+const diasEntre=(a,b)=>{ const x=parseDate(a), y=parseDate(b); return Math.round((Date.UTC(y.y,y.m-1,y.d)-Date.UTC(x.y,x.m-1,x.d))/86400000)+1; };
+function vacUnir(rs,nuevo){
+  const todos=[...rs,nuevo].sort((a,b)=>a.d.localeCompare(b.d)), res=[];
+  for(const r of todos){ const u=res[res.length-1]; if(u&&diaMas(u.h,1)>=r.d){ if(r.h>u.h) u.h=r.h; } else res.push({id:r.id,d:r.d,h:r.h}); }
+  return res;
+}
+const vacGuardar=rs=>commit('setCfg',{clave:'vacaciones',valor:JSON.stringify(rs)});
+const rangoTxt=r=>{ const a=dayShort(r.d), b=dayShort(r.h), ya=r.d.slice(0,4), yb=r.h.slice(0,4); return ya===yb?`${a} – ${b} ${yb}`:`${a} ${ya} – ${b} ${yb}`; };
+function vacDatos(y){
+  const rs=vacRangos(), ys=String(y), movsY=S.db.movs.filter(m=>m.f.startsWith(ys+'-'));
+  const per=rs.filter(r=>r.d.slice(0,4)<=ys&&r.h.slice(0,4)>=ys).map(r=>{
+    const d0=r.d<ys+'-01-01'?ys+'-01-01':r.d, h0=r.h>ys+'-12-31'?ys+'-12-31':r.h;
+    const ms=movsY.filter(m=>m.f>=r.d&&m.f<=r.h).sort((a,b)=>a.f.localeCompare(b.f)||a.id.localeCompare(b.id));
+    const by=new Map(); ms.forEach(m=>{ const k=m.c||''; by.set(k,round2((by.get(k)||0)+m.i)); });
+    const top=[...by.entries()].sort((a,b)=>b[1]-a[1])[0];
+    return {r,d0,h0,dias:diasEntre(d0,h0),ms,tot:round2(sum(ms.map(m=>m.i))),top};
+  });
+  const movs=per.flatMap(p=>p.ms), by=new Map(); movs.forEach(m=>{ const k=m.c||''; const e=by.get(k)||{n:0,t:0}; e.n++; e.t=round2(e.t+m.i); by.set(k,e); });
+  return {rs,per,movs,by,tot:round2(sum(movs.map(m=>m.i))),dias:sum(per.map(p=>p.dias)),totYear:round2(sum(movsY.map(m=>m.i)))};
+}
+function vacPreview(){
+  const p=$('#vac-prev'); if(!p) return; const d=$('#v-d').value, h=$('#v-h').value;
+  if(!d||!h){ p.textContent='Elige el primer y el último día.'; return; }
+  if(d>h){ p.textContent='El primer día no puede ser posterior al último.'; return; }
+  const ms=S.db.movs.filter(m=>m.f>=d&&m.f<=h), t=round2(sum(ms.map(m=>m.i)));
+  p.textContent=`${diasEntre(d,h)} ${diasEntre(d,h)===1?'día':'días'}. Entre esas fechas hay ${ms.length} ${ms.length===1?'gasto':'gastos'}${ms.length?' por '+eur(t):''}.`;
+}
+function vacMarcar(){
+  const d=$('#v-d').value, h=$('#v-h').value, p=$('#vac-prev');
+  if(!d||!h){ p.textContent='Elige el primer y el último día.'; p.style.color='var(--bad)'; return; }
+  if(d>h){ p.textContent='El primer día no puede ser posterior al último.'; p.style.color='var(--bad)'; return; }
+  const ms=S.db.movs.filter(m=>m.f>=d&&m.f<=h), t=round2(sum(ms.map(m=>m.i)));
+  vacGuardar(vacUnir(vacRangos(),{id:uid(),d,h}));
+  S.year=+d.slice(0,4); render(true);
+  toast(ms.length?`Marcados ${ms.length} gastos (${eur(t)}) como vacaciones`:'Fechas guardadas. Los gastos que cargues en ellas saldrán como vacaciones.');
+}
+function vacacionesView(){
+  const y=S.year, D=vacDatos(y), rs=D.rs, hay=D.per.length>0;
+  const marcar=card(`<div class="h2" style="margin-bottom:4px">Marcar vacaciones</div><p class="muted" style="font-size:15px;margin-bottom:12px">Elige el primer y el último día. Todos los gastos de esas fechas, también los que cargues después, pasan a ser de vacaciones.</p>
+    <div class="row e" style="gap:12px 20px"><div class="field"><label for="v-d">Desde</label><input id="v-d" class="inp" type="date" data-chg="vacprev" style="min-width:200px"></div><div class="field"><label for="v-h">Hasta</label><input id="v-h" class="inp" type="date" data-chg="vacprev" style="min-width:200px"></div><button class="btn" data-act="vacmarcar">🏖 Marcar como vacaciones</button></div>
+    <p class="muted" id="vac-prev" style="margin-top:10px;font-size:15px">Elige el primer y el último día.</p>`);
+  const lista=rs.length?card(`<div class="h2" style="margin-bottom:6px">Fechas marcadas</div>${rs.map(r=>{ const ms=S.db.movs.filter(m=>m.f>=r.d&&m.f<=r.h), t=round2(sum(ms.map(m=>m.i))); return `<div class="crow"><span class="key">🏖</span><span class="nm"><b>${rangoTxt(r)}</b><span>${diasEntre(r.d,r.h)} días · ${ms.length} ${ms.length===1?'gasto':'gastos'} · ${eur(t)}</span></span><button class="btn alt sm" data-act="vacquitar" data-id="${esc(r.id)}">Quitar</button></div>`; }).join('')}`):'';
+  let informe='';
+  if(!hay){
+    informe=`<div class="empty">${rs.length?`No hay vacaciones marcadas en ${y}. Usa las flechas del año.`:'Todavía no has marcado vacaciones. Elige las fechas arriba.'}</div>`;
+  } else {
+    const mxC=Math.max(...[...D.by.values()].map(e=>e.t),1), concept=[...D.by.entries()].sort((a,b)=>b[1].t-a[1].t);
+    const comp=D.per.length>1?card(`<div class="h2" style="margin-bottom:8px">Comparar las escapadas</div><div class="tblwrap"><table class="t" style="min-width:600px"><thead><tr><th class="l">Fechas</th><th>Días</th><th>Gastos</th><th>Total</th><th>€ por día</th><th class="l">Concepto mayor</th></tr></thead><tbody>${D.per.map(p=>`<tr><td class="l" style="font-weight:600">${rangoTxt(p.r)}</td><td>${p.dias}</td><td>${p.ms.length}</td><td style="font-weight:700">${eur(p.tot)}</td><td>${eur(p.tot/p.dias)}</td><td class="l">${p.top?esc(catName(p.top[0]))+' · '+eur(p.top[1]):''}</td></tr>`).join('')}</tbody></table></div>`):'';
+    informe=`<div class="kpis">${kpi('Gastos de vacaciones',eur(D.tot),`${D.movs.length} ${D.movs.length===1?'gasto':'gastos'} en ${y}`)}${kpi('Días',String(D.dias),D.per.length+(D.per.length===1?' periodo':' periodos'))}${kpi('Por día',eur(D.tot/D.dias),'gasto medio al día')}${kpi('Del gasto del año',D.totYear?pct1(D.tot/D.totYear*100):'—',`de ${eur(D.totYear)} en ${y}`)}</div>`
+     +comp
+     +card(`<div class="h2" style="margin-bottom:8px">En qué se ha gastado</div><div class="tblwrap"><table class="t" style="min-width:520px"><thead><tr><th class="l">Concepto</th><th class="l"></th><th>Total</th><th>%</th><th>Gastos</th></tr></thead><tbody>${concept.map(([k,e])=>`<tr><td class="l" style="font-weight:600">${esc(catName(k))}</td><td class="l" style="width:34%;min-width:140px">${bar(e.t/mxC*100)}</td><td style="font-weight:700">${eur(e.t)}</td><td class="muted">${pct1(e.t/D.tot*100)}</td><td class="muted">${e.n}</td></tr>`).join('')}</tbody><tfoot><tr><td class="l">Total</td><td></td><td>${eur(D.tot)}</td><td></td><td>${D.movs.length}</td></tr></tfoot></table></div>`)
+     +D.per.map(p=>card(`<div class="mh" style="margin-top:0"><span>${rangoTxt(p.r)} · ${p.dias} ${p.dias===1?'día':'días'}</span><span>${p.ms.length} ${p.ms.length===1?'gasto':'gastos'} · ${eur(p.tot)}</span></div>${p.ms.map(m=>`<button class="mv" data-act="edit" data-id="${esc(m.id)}"><span class="d">${m.f.slice(8,10)}/${m.f.slice(5,7)}</span><span class="t">${esc(m.d||'(sin descripción)')}</span><span class="c">${esc(catName(m.c))}</span><span class="a">${eur(m.i)}</span></button>`).join('')||'<p class="muted" style="padding:10px 4px">Sin gastos en estas fechas.</p>'}`)).join('');
+  }
+  return shell('vacaciones',`<header class="row c" style="justify-content:space-between"><div><h1 class="h1">Gastos de vacaciones</h1><p class="sub">Marca unas fechas y mira cuánto has gastado en ellas.</p></div><div class="row c">${yearStepper()}${hay?'<button class="btn alt" data-act="vacexcel">Descargar informe</button>':''}</div></header>${marcar}${lista}${informe}`,'');
+}
+function exportVac(){
+  const y=S.year, D=vacDatos(y); if(!D.per.length){ toast('No hay vacaciones marcadas en '+y); return; }
+  const wb=XLSX.utils.book_new(), add=(n,r)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(r),n);
+  add('Resumen',[['Desde','Hasta','Días','Gastos','Total €','€ por día','Concepto mayor'],...D.per.map(p=>[p.r.d,p.r.h,p.dias,p.ms.length,p.tot,round2(p.tot/p.dias),p.top?catName(p.top[0]):'']),['','Total',D.dias,D.movs.length,D.tot,D.dias?round2(D.tot/D.dias):0,'']]);
+  add('Por concepto',[['Concepto','Total €','%','Gastos'],...[...D.by.entries()].sort((a,b)=>b[1].t-a[1].t).map(([k,e])=>[catName(k),e.t,D.tot?round2(e.t/D.tot*100):0,e.n])]);
+  add('Gastos',[['Fecha','Concepto','Descripción','Cuenta','Importe €'],...D.movs.map(m=>[m.f,catName(m.c),m.d,m.cu,m.i])]);
+  XLSX.writeFile(wb,'Vacaciones-'+y+'.xlsx'); toast('Informe descargado');
+}
+
 /* ================= datos y copias ================= */
 function datosView(){
   const pend=S.outbox.length, url=S.cfg?S.cfg.url:'', short=url.length>58?url.slice(0,34)+'…'+url.slice(-18):url;
@@ -1207,6 +1283,7 @@ async function restoreBackup(file){
     (rows('Posiciones')||[]).forEach(r=>commit('savePos',{fila:[String(r[0]),String(r[1]),String(r[2]),String(r[3]),String(r[4]),Number(r[5])||0,String(r[6]||''),String(r[7]||'')]}));
     const F=rows('Fotos')||[], V=rows('FotosValores')||[];
     F.forEach(r=>{ const id=String(r[0]); commit('saveFoto',{foto:[id,iso(r[1]),String(r[2]).slice(0,7)],valores:V.filter(v=>String(v[0])===id).map(v=>[String(v[1]),Number(v[2])||0])}); });
+    (rows('Config')||[]).filter(r=>String(r[0])==='vacaciones').forEach(r=>commit('setCfg',{clave:'vacaciones',valor:String(r[1])}));
     const L=(rows('Aprendizaje')||[]).map(r=>[String(r[0]),String(r[1]),String(r[2])]); if(L.length) commit('saveLearn',{items:L});
     render(); toast(`Copia cargada: ${filas.length} movimientos revisados.`);
   }catch(e){ toast('No se pudo cargar la copia: '+e.message); }
@@ -1256,7 +1333,7 @@ function openClose(id){ const p=S.db.pos.find(x=>x.id===id); const pc=patCalc(S.
 function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; let h=''; if(!reopen){ h=$('#p-h').value; if(!parseDate(h)) return entryErr('Pon una fecha válida.'); }
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
-const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,datos:datosView};
+const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,datos:datosView};
 
 /* ================= eventos ================= */
 const ACT={
@@ -1291,6 +1368,11 @@ const ACT={
   cmpynext(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i<c.years.length-1){ S.cmp.year=c.years[i+1]; S.cmp.upto=null; render(); } },
   antesyear(el){ S.ant.year=+el.dataset.y; render(); },
   papct(){ S.pa.pct=!S.pa.pct; render(); },
+  vacmarcar(){ vacMarcar(); },
+  vacquitar(el){ el.textContent='¿Seguro? Pulsa otra vez'; el.dataset.act='vacquitar2'; },
+  vacquitar2(el){ vacGuardar(vacRangos().filter(r=>r.id!==el.dataset.id)); render(); toast('Vacaciones quitadas'); },
+  vacexcel(){ exportVac(); },
+  fvac(){ S.f.vac=!S.f.vac; S.f.limit=80; render(); },
   captura(){ toast('Leer capturas todavía no está disponible. Escribe los valores, o pásame la captura en el chat.'); },
   connect(){ connect(); },
   retry(){ pull().then(()=>render(true)); },
@@ -1323,6 +1405,7 @@ document.addEventListener('change',e=>{
   if(k==='fotoval'){ S.foto.vals[el.dataset.pos]=el.value; render(); return; }
   if(k==='fotofecha'){ S.foto.fecha=el.value.trim(); render(); return; }
   if(k==='fotocierra'){ S.foto.cierra=el.value; return; }
+  if(k==='vacprev'){ vacPreview(); return; }
   if(k==='fcat'){ S.f.cat=el.value; S.f.limit=80; render(); return; }
   if(k==='fmonth'){ S.f.month=+el.value; S.f.limit=80; render(); return; }
   if(k==='e-cat'){ entryTouched=true; return; }
