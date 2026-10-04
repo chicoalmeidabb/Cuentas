@@ -125,18 +125,27 @@ table.t{border-collapse:collapse;width:100%}
 .empty{padding:28px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
 
 /* inicio */
-.home{height:100%;display:flex;flex-direction:column;gap:20px;padding:max(36px,env(safe-area-inset-top)) 40px 32px;overflow-y:auto}
-.home .hd{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px}
-.home .hd .acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:20px}
-.home .h1{font-size:44px}
-.home section{flex:none;display:flex;flex-direction:column}
-.home h2{margin:0 0 10px;font-size:18px;color:var(--muted)}
-.tiles{display:flex;flex-wrap:wrap;gap:16px}
-.tile{flex:1 1 220px;min-width:0;min-height:230px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:22px 26px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);text-align:left;text-decoration:none}
-.tile .ico{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:14px;background:var(--accent-soft);color:var(--accent)}
-.tile .tt{font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-.01em} .tile .td{font-size:16px;color:var(--muted)}
-.tile .st{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);width:100%;font-size:16px;font-weight:600}
-.pill{display:inline-block;padding:4px 14px;border-radius:999px;background:var(--warn-bg);color:var(--warn);font-weight:700}
+.home{height:100%;display:flex;flex-direction:column;align-items:center;gap:16px;padding:max(16px,env(safe-area-inset-top)) 32px 22px;overflow-y:auto}
+.home>*{width:100%;max-width:1080px;flex:none}
+.home .hd{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 22px}
+.home .hd .logo{width:78px;height:78px}
+.home .hd .ttl{text-align:left}
+.home .hd .acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 12px}
+.home .h1{font-size:36px}
+.home section{display:flex;flex-direction:column}
+.home h2{margin:0 0 8px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.tiles{display:grid;gap:14px}
+.tiles.two{grid-template-columns:3fr 2fr}
+.tiles.six{grid-template-columns:repeat(3,1fr)}
+.tile{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);text-align:left;text-decoration:none}
+.tile .ico{display:flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent)}
+.tile .tt{font-size:20px;line-height:1.15;font-weight:700;letter-spacing:-.01em} .tile .td{font-size:14px;line-height:1.35;color:var(--muted)}
+.tile .st{margin-top:auto;padding-top:8px;border-top:1px solid var(--line);width:100%;font-size:15px;font-weight:600}
+.tile.big{min-height:128px}
+.tile.compact{flex-direction:row;align-items:center;gap:14px;padding:12px 18px}
+.tile.compact .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tile.compact .st{margin:0;padding:0;border:0;width:auto;flex:none}
+button.tile{font:inherit;cursor:pointer}
 .pill.ok{background:var(--ok-bg);color:var(--ok)}
 
 /* nuevo mes */
@@ -181,6 +190,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 .side .logo{width:96px;height:96px;margin:0 auto}
 .setup .logo{width:112px;height:112px;margin:0 auto}
 
+@media (max-width:1100px) and (min-width:901px){ .tiles.six{grid-template-columns:repeat(2,1fr)} }
 @media (max-width:900px){
   .side{position:fixed;z-index:40;left:0;top:0;bottom:0;width:260px;transform:translateX(-102%);transition:transform .2s;box-shadow:0 0 40px rgba(0,0,0,.3)}
   body.menu .side{transform:none}
@@ -188,7 +198,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
   .topbar .brand{margin:0;font-size:20px}
   .scroll{padding:20px 16px} .bar{padding:12px 16px}
   .home{padding:24px 16px} .h1{font-size:28px} .home .h1{font-size:34px}
-  .home .hd{grid-template-columns:1fr} .home .hd .logo{order:-1;margin:0 auto} .home .hd .acts{justify-content:flex-start}
+  .tiles.two,.tiles.six{grid-template-columns:1fr} .home .hd .ttl{text-align:center}
   .mv .c{display:none}
 }
 @media (prefers-reduced-motion:reduce){.side,.toast{transition:none}}
@@ -200,7 +210,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.5';
+const APP_VERSION='1.7';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -399,7 +409,7 @@ const S={
   sync:{state:'ok',msg:'',last:null,version:'',hoja:''},
   route:{name:'inicio',params:{}}, wiz:null, foto:null,
   year:new Date().getFullYear(), sort:'orden',
-  f:{q:'',cat:'',month:0,limit:80}, gc:{concept:null,month:null}
+  f:{q:'',cat:'',month:0,limit:80}, gc:{concept:null,month:null}, cmp:{year:null,upto:null}
 };
 
 async function api(action,payload,timeoutMs=60000){
@@ -494,6 +504,7 @@ const ICONS={
  warn:'<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path>',
  sync:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path>',
  menu:'<path d="M4 6h16M4 12h16M4 18h16"></path>',
+ bars:'<path d="M5 20v-9M12 20V5M19 20v-6"></path>',
  tag:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"></path><path d="M7.5 7.5h.01"></path>'
 };
 const icon=(n,s)=>`<svg class="ic${s==='s'?' s':''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
@@ -509,8 +520,8 @@ const bar=(w,h=12,c)=>`<div class="meter" style="height:${h}px"><i style="width:
 const catOpts=(sel,extra='')=>`${extra}`+S.db.cats.filter(c=>c.a).map(c=>`<option value="${esc(c.n)}"${c.n===sel?' selected':''}>${esc(c.n)}</option>`).join('');
 const catName=c=>c||'Sin categoría';
 
-const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear']];
-const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',datos:'datos'};
+const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear']];
+const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',datos:'datos'};
 function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='home'?' homesync':''}" data-sync="${where||'side'}" data-go="datos">${icon(S.sync.ico||'check','s')}<span>${esc(S.sync.txt||'Todo guardado')}</span></button>`; }
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
@@ -566,24 +577,32 @@ function monthStatus(){
 function topConcept(year){
   const ag=aggYear(S.db.movs,year); let best=null; for(const [k,a] of ag.by) if(k){ const t=sum(a); if(!best||t>best[1]) best=[k,t]; } return best;
 }
-function tile(href,ic,title,desc,status,pill){
-  const st=status?`<div class="st">${pill?`<span class="pill ${pill==='ok'?'ok':''}">${status}</span>`:status}</div>`:'';
+function pillOrText(status,pill){ return pill?`<span class="pill ${pill==='ok'?'ok':''}">${status}</span>`:status; }
+function tile(href,ic,title,desc,status,pill,extra=''){
+  const st=status?`<div class="st">${pillOrText(status,pill)}</div>`:'';
   const inner=`<span class="ico">${icon(ic)}</span><span class="tt">${title}</span><span class="td">${desc}</span>${st}`;
-  return href?`<a class="tile" href="${href}">${inner}</a>`:`<button class="tile" data-act="add">${inner}</button>`;
+  return href?`<a class="tile ${extra}" href="${href}">${inner}</a>`:`<button class="tile ${extra}" data-act="add">${inner}</button>`;
+}
+// Tarjeta baja y alargada: icono, título y una línea; el estado va a la derecha
+function tileC(href,ic,title,desc,status,pill){
+  const st=status?`<span class="st">${pillOrText(status,pill)}</span>`:'';
+  const inner=`<span class="ico">${icon(ic)}</span><span class="tx"><span class="tt">${title}</span><span class="td">${desc}</span></span>${st}`;
+  return href?`<a class="tile compact" href="${href}">${inner}</a>`:`<button class="tile compact" data-act="add">${inner}</button>`;
 }
 function inicioView(){
   const ms=monthStatus(), y=S.year, ag=aggYear(S.db.movs,y), G=sum(ag.tot), I=sum(Object.entries(S.db.ingresos).filter(([k])=>k.startsWith(y+'-')).map(([,v])=>v));
   const tc=topConcept(y), pc=patCalc(S.db), lastP=pc[pc.length-1];
-  const nmStatus=ms.pending?`Pendiente: ${mlow(+ms.pending.slice(5,7)-1)}`:`Al día · último mes: ${mlow(+ms.last.slice(5,7)-1)}`;
+  const nmStatus=ms.pending?`Pendiente: ${mlow(+ms.pending.slice(5,7)-1)}`:`Al día · ${mlow(+ms.last.slice(5,7)-1)}`;
   const d=new Date(); const dtxt=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  return `<div class="home"><header class="hd"><div><h1 class="h1">Cuentas</h1><p class="sub" style="font-size:18px">${esc(dtxt.charAt(0).toUpperCase()+dtxt.slice(1))} · <span class="ver" style="margin:0;padding:0">Versión ${APP_VERSION}</span></p></div>
-   <img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><div class="acts">${syncBtn('home')}<button class="btn alt" data-act="install" data-install ${window.__ip?'':'hidden'}>${icon('up')}Instalar app</button><a class="btn alt" href="#/datos">${icon('gear')}Datos y copias</a><button class="btn" data-act="add">${icon('plus')}Apuntar gasto</button></div></header>
-   <section><h2>Introducir datos</h2><div class="tiles">${tile('#/nuevo','plus','Nuevo mes','Carga un mes con su extracto: el pasado o cualquier mes anterior. Extractos, saldos e ingresos.',nmStatus,ms.pending?'warn':'ok')}${tile(null,'plus','Apuntar un gasto','Un gasto suelto, a mano: efectivo, propinas, lo que no sale en el banco.','')}</div></section>
-   <section><h2>Consultar</h2><div class="tiles">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto llevas gastado en cada cosa: todo el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía')}
-   ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`)}
-   ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`)}
-   ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía')}
-   ${tile('#/conceptos','tag','Conceptos','Cambia el nombre de los conceptos de gasto o añade nuevos.',`${S.db.cats.filter(x=>x.a).length} conceptos`)}</div></section></div>`;
+  return `<div class="home"><header class="hd"><img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><div class="ttl"><h1 class="h1">Cuentas</h1><p class="sub" style="margin-top:2px;font-size:16px">${esc(dtxt.charAt(0).toUpperCase()+dtxt.slice(1))} · <span class="ver" style="display:inline;margin:0;padding:0;font-size:inherit">Versión ${APP_VERSION}</span></p></div>
+   <div class="acts">${syncBtn('home')}<button class="btn alt sm" data-act="install" data-install ${window.__ip?'':'hidden'}>${icon('up','s')}Instalar app</button><a class="btn alt sm" href="#/datos">${icon('gear','s')}Datos y copias</a></div></header>
+   <section><h2>Introducir datos</h2><div class="tiles two">${tileC('#/nuevo','plus','Nuevo mes','Extractos, saldos e ingresos de cualquier mes.',nmStatus,ms.pending?'warn':'ok')}${tileC(null,'plus','Apuntar un gasto','Efectivo, propinas, lo que no sale en el banco.','')}</div></section>
+   <section><h2>Consultar</h2><div class="tiles six">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto gastas en cada cosa: el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía','','big')}
+   ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`,'','big')}
+   ${tile('#/comparar','bars','Comparar años','Este año frente al anterior, hasta el mismo mes.',cmpResumen(),'','big')}
+   ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`,'','big')}
+   ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía','','big')}
+   ${tile('#/conceptos','tag','Conceptos','Cambia el nombre de los conceptos o añade nuevos.',`${S.db.cats.filter(x=>x.a).length} conceptos`,'','big')}</div></section></div>`;
 }
 
 /* ================= nuevo mes ================= */
@@ -831,6 +850,57 @@ function anioView(){
   return shell('anio',main,'');
 }
 
+/* ================= comparar años ================= */
+function cmpState(){
+  const years=[...new Set(S.db.movs.map(m=>+m.f.slice(0,4)))].sort((a,b)=>a-b);
+  const year=years.includes(S.cmp.year)?S.cmp.year:years[years.length-1];
+  const ag=aggYear(S.db.movs,year);
+  const auto=Math.max(1,lastMonthIdx(ag.tot)+1);
+  return {years,year,prev:year-1,auto,upto:S.cmp.upto||auto,ag};
+}
+function cmpResumen(){
+  if(!S.db.movs.length) return 'Sin gastos todavía';
+  const c=cmpState(); if(!c.years.includes(c.prev)) return `Sin datos de ${c.prev}`;
+  const B=aggYear(S.db.movs,c.prev), d=round2(sum(c.ag.tot.slice(0,c.auto))-sum(B.tot.slice(0,c.auto)));
+  return `${c.year} frente a ${c.prev} hasta ${mlow(c.auto-1)}: ${d>=0?'+':'\u2212'}${eur0(Math.abs(d))} €`;
+}
+function compararView(){
+  if(!S.db.movs.length) return shell('comparar','<header><h1 class="h1">Comparar años</h1></header><div class="empty">Todavía no hay gastos.</div>','');
+  const c=cmpState(), n=c.upto, A=c.ag, B=aggYear(S.db.movs,c.prev), hasPrev=c.years.includes(c.prev);
+  const head=(sub)=>`<header class="col" style="gap:16px"><div><h1 class="h1">Comparar años</h1><p class="sub">${sub}</p></div>
+   <div class="row c" style="justify-content:space-between;gap:12px 24px"><div class="row c">${stepper(`${c.year} frente a ${c.prev}`,190,'cmpyprev','cmpynext')}${stepper('Hasta '+mlow(n-1),170,'cmpprev','cmpnext')}</div>
+   <button class="chip" data-act="cmpauto" aria-pressed="${S.cmp.upto==null}">Hasta el último mes cargado</button></div></header>`;
+  if(!hasPrev) return shell('comparar',head(`No hay gastos de ${c.prev} para comparar.`)+`<div class="empty">Carga los gastos de ${c.prev} (por ejemplo con una copia en Excel) y aquí podrás compararlos.</div>`,'');
+  const sumTo=a=>round2(sum(a.slice(0,n)));
+  const totA=sumTo(A.tot), totB=sumTo(B.tot), diff=round2(totA-totB);
+  const inc=y=>round2(sum(Array.from({length:n},(_,i)=>S.db.ingresos[ymStr(y,i+1)]||0)));
+  const ahA=round2(inc(c.year)-totA), ahB=round2(inc(c.prev)-totB), dAh=round2(ahA-ahB);
+  const pct=totB?diff/totB*100:0, cls=d=>d>0?'neg':d<0?'pos':'', sg=d=>(d>0?'+':d<0?'\u2212':'')+num2(Math.abs(d))+' €';
+  const keys=new Set([...A.by.keys(),...B.by.keys()]);
+  const rows=[...keys].map(k=>{ const a=A.by.has(k)?sumTo(A.by.get(k)):0, b=B.by.has(k)?sumTo(B.by.get(k)):0; return {k,a,b,d:round2(a-b)}; })
+    .filter(r=>r.a!==0||r.b!==0).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+  const rc=rows.map(r=>`<tr><td class="l" style="font-weight:600">${esc(catName(r.k))}</td><td>${eur(r.b)}</td><td>${eur(r.a)}</td><td class="${cls(r.d)}" style="font-weight:700">${sg(r.d)}</td><td class="${cls(r.d)}" style="font-size:15px">${r.b?(r.d>0?'+':r.d<0?'\u2212':'')+pct1(r.d/r.b*100):'<span class="muted">nuevo</span>'}</td></tr>`).join('');
+  const rm=Array.from({length:n},(_,i)=>{ const a=A.tot[i], b=B.tot[i], d=round2(a-b); return `<tr><td class="l" style="font-weight:600">${MONTHS[i]}</td><td>${eur(b)}</td><td>${eur(a)}</td><td class="${cls(d)}" style="font-weight:700">${sg(d)}</td></tr>`; }).join('');
+  // gráfico de barras agrupadas
+  const W=760,H=300,L=8,R=8,T=26,Bt=32, bw=(W-L-R)/n, mx=Math.max(1,...A.tot.slice(0,n),...B.tot.slice(0,n))*1.12, base=H-Bt;
+  let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gasto de cada mes, ${c.prev} y ${c.year}">`;
+  for(let m=0;m<n;m++){
+    const x0=L+m*bw, wb=bw*0.34;
+    [[B.tot[m],x0+bw*0.12,'var(--accent-3)'],[A.tot[m],x0+bw*0.54,'var(--accent)']].forEach(([v,x,col])=>{
+      if(v>0){ const h=v/mx*(base-T); svg+=`<rect x="${x.toFixed(1)}" y="${(base-h).toFixed(1)}" width="${wb.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${col}"></rect><text x="${(x+wb/2).toFixed(1)}" y="${(base-h-5).toFixed(1)}" font-size="${n>9?10:11}" text-anchor="middle" fill="var(--ink)">${nf0.format(Math.round(v))}</text>`; }
+    });
+    svg+=`<text x="${(x0+bw/2).toFixed(1)}" y="${H-10}" font-size="13" text-anchor="middle" fill="var(--muted)">${MSHORT[m]}</text>`;
+  }
+  svg+='</svg>';
+  const leyenda=`<div class="row c" style="gap:18px;font-size:15px;margin-bottom:6px"><span class="row c" style="gap:8px"><i style="display:inline-block;width:16px;height:16px;border-radius:4px;background:var(--accent-3)"></i>${c.prev}</span><span class="row c" style="gap:8px"><i style="display:inline-block;width:16px;height:16px;border-radius:4px;background:var(--accent)"></i>${c.year}</span></div>`;
+  const nota=n<12&&S.cmp.upto==null?`Los dos años se comparan de enero a ${mlow(n-1)}, el último mes cargado de ${c.year}.`:`Los dos años se comparan de enero a ${mlow(n-1)}.`;
+  return shell('comparar',head(nota)
+   +`<div class="kpis">${kpi(`Gastos ${c.year}`,eur(totA),`enero a ${mlow(n-1)}`)}${kpi(`Gastos ${c.prev}`,eur(totB),`enero a ${mlow(n-1)}`)}${kpi('Diferencia',sg(diff),totB?`${diff>0?'más':diff<0?'menos':'igual'} que en ${c.prev} (${pct1(pct)})`:'',cls(diff))}${kpi('Ahorro',sg(dAh).replace(/^\+/,'+'),`${c.year}: ${eur0(ahA)} € · ${c.prev}: ${eur0(ahB)} €`,dAh>0?'pos':dAh<0?'neg':'')}</div>`
+   +`<div class="row" style="align-items:flex-start">${card(`<div class="h2" style="margin-bottom:8px">Mes a mes</div>${leyenda}${svg}`,'style="flex:2 1 520px;min-width:0"')}`
+   +card(`<div class="h2" style="margin-bottom:8px">Detalle de cada mes</div><div class="tblwrap"><table class="t" style="min-width:380px"><thead><tr><th class="l">Mes</th><th>${c.prev}</th><th>${c.year}</th><th>Diferencia</th></tr></thead><tbody>${rm}</tbody><tfoot><tr><td class="l">Total</td><td>${eur(totB)}</td><td>${eur(totA)}</td><td class="${cls(diff)}">${sg(diff)}</td></tr></tfoot></table></div>`,'style="flex:1 1 380px;min-width:0"')+`</div>`
+   +card(`<div class="h2" style="margin-bottom:4px">Por concepto</div><p class="muted" style="font-size:14px;margin-bottom:8px">De mayor a menor cambio. En rojo, gastas más que el año anterior; en verde, menos.</p><div class="tblwrap"><table class="t" style="min-width:640px"><thead><tr><th class="l">Concepto</th><th>${c.prev}</th><th>${c.year}</th><th>Diferencia</th><th>%</th></tr></thead><tbody>${rc}</tbody><tfoot><tr><td class="l">Total</td><td>${eur(totB)}</td><td>${eur(totA)}</td><td class="${cls(diff)}">${sg(diff)}</td><td></td></tr></tfoot></table></div>`),'');
+}
+
 /* ================= movimientos ================= */
 function filteredMovs(){
   const q=norm(S.f.q), pre=S.year+'-'; let rows=S.db.movs.filter(r=>r.f.startsWith(pre));
@@ -1057,7 +1127,7 @@ function openClose(id){ const p=S.db.pos.find(x=>x.id===id); const pc=patCalc(S.
 function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; let h=''; if(!reopen){ h=$('#p-h').value; if(!parseDate(h)) return entryErr('Pon una fecha válida.'); }
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
-const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,datos:datosView};
+const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,datos:datosView};
 
 /* ================= eventos ================= */
 const ACT={
@@ -1084,6 +1154,11 @@ const ACT={
     ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
   patprev(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c>0){ S.year=+ys[c-1]; render(); } },
   patnext(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c<ys.length-1){ S.year=+ys[c+1]; render(); } },
+  cmpprev(){ const c=cmpState(); S.cmp.year=c.year; S.cmp.upto=Math.max(1,c.upto-1); render(); },
+  cmpnext(){ const c=cmpState(); S.cmp.year=c.year; S.cmp.upto=Math.min(12,c.upto+1); render(); },
+  cmpauto(){ S.cmp.upto=null; render(); },
+  cmpyprev(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i>0){ S.cmp.year=c.years[i-1]; S.cmp.upto=null; render(); } },
+  cmpynext(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i<c.years.length-1){ S.cmp.year=c.years[i+1]; S.cmp.upto=null; render(); } },
   captura(){ toast('Leer capturas todavía no está disponible. Escribe los valores, o pásame la captura en el chat.'); },
   connect(){ connect(); },
   retry(){ pull().then(()=>render(true)); },
