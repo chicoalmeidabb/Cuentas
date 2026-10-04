@@ -136,6 +136,8 @@ table.t{border-collapse:collapse;width:100%}
 .stk strong{flex:none;min-width:110px;text-align:right}
 .mh{display:flex;justify-content:space-between;gap:12px;margin:14px 0 2px;padding:8px 4px;border-bottom:2px solid var(--ink);font-weight:700}
 .mh span:last-child{font-weight:500;color:var(--muted);font-size:14px}
+.rowbtn{background:none;border:0;padding:6px 0;font:inherit;font-weight:inherit;color:inherit;text-align:left;cursor:pointer;min-height:36px}
+.t tr[data-act]:hover td{background:var(--accent-soft)}
 .empty{padding:28px;border:2px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
 
 /* inicio */
@@ -224,7 +226,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='1.8';
+const APP_VERSION='1.9';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -423,7 +425,7 @@ const S={
   sync:{state:'ok',msg:'',last:null,version:'',hoja:''},
   route:{name:'inicio',params:{}}, wiz:null, foto:null,
   year:new Date().getFullYear(), sort:'orden',
-  f:{q:'',cat:'',month:0,limit:80}, gc:{concept:null,month:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}
+  f:{q:'',cat:'',month:0,limit:80}, gc:{concept:null,month:null,sel:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}
 };
 
 async function api(action,payload,timeoutMs=60000){
@@ -832,17 +834,39 @@ function gastoView(arg){
       +card(`<div class="row c" style="justify-content:space-between;margin-bottom:8px"><div class="h2">Movimientos de ${esc(c)} en ${S.year}, de enero a diciembre</div><span class="muted" style="font-size:14px">${movs.length} en total</span></div>${list||'<p class="muted">Sin movimientos.</p>'}<div style="margin-top:16px"><button class="btn alt" data-act="gcmovs" data-c="${esc(c)}">Abrir en Movimientos</button></div>`),'');
   }
   // por mes
-  const mi=S.gc.month!=null?S.gc.month:lastMonthIdx(ag.tot), prevI=mi-1;
+  const mi=S.gc.month!=null?S.gc.month:lastMonthIdx(ag.tot), prevI=mi-1, ly=S.year-1;
+  const Bp=aggYear(S.db.movs,ly), hasLY=Bp.tot.some(v=>v>0);
   const cats=[...ag.by.keys()].filter(k=>ag.by.get(k)[mi]>0).sort((a,b)=>ag.by.get(b)[mi]-ag.by.get(a)[mi]), tm=ag.tot[mi], tp=prevI>=0?ag.tot[prevI]:0, diff=round2(tm-tp);
+  const sel=S.gc.sel!=null&&(ag.by.has(S.gc.sel)||cats.includes(S.gc.sel))?S.gc.sel:null;
   const top=cats[0]; const mx=top!==undefined?ag.by.get(top)[mi]:1;
-  const rows=cats.map(k=>{ const v=ag.by.get(k)[mi], pv=prevI>=0?ag.by.get(k)[prevI]:0, d=round2(v-pv);
-    return `<tr><td class="l" style="font-weight:600">${esc(catName(k))}</td><td class="l" style="width:30%;min-width:140px">${bar(v/mx*100)}</td><td style="font-weight:700">${eur(v)}</td><td style="font-size:15px">${prevI<0?'':pv===0?'<span class="muted">sin gasto antes</span>':`<span class="${d>0?'neg':'pos'}" style="font-weight:600">${(d>0?'+':'\u2212')+num2(Math.abs(d))} €</span>`}</td></tr>`; }).join('');
-  const nmax=Math.max(...ag.tot.slice(0,lastMonthIdx(ag.tot)+1),1);
-  const mrows=ag.tot.map((t,i)=>i>lastMonthIdx(ag.tot)?'':`<button class="mv" style="${i===mi?'background:var(--accent-soft);border-radius:10px':''}" data-act="gcmonth" data-m="${i}"><span class="d" style="width:44px;color:${i===mi?'var(--accent)':'var(--ink)'};font-weight:${i===mi?700:500}">${MSHORT[i]}</span><span style="flex:1">${bar(t/nmax*100,10,i===mi?'var(--accent)':'var(--accent-2)')}</span><span class="a" style="font-weight:${i===mi?700:500}">${eur0(t)} €</span></button>`).join('');
+  const sg=d=>(d>0?'+':d<0?'\u2212':'')+num2(Math.abs(d))+' €', cl=d=>d>0?'neg':d<0?'pos':'';
+  const rows=cats.map(k=>{ const v=ag.by.get(k)[mi], pv=prevI>=0?ag.by.get(k)[prevI]:0, d=round2(v-pv), on=sel===k;
+    return `<tr data-act="gcsel" data-c="${esc(k)}" style="cursor:pointer;${on?'background:var(--accent-soft)':''}"><td class="l" style="font-weight:${on?700:600}"><button class="rowbtn" data-act="gcsel" data-c="${esc(k)}" aria-pressed="${on}">${esc(catName(k))}</button></td><td class="l" style="width:30%;min-width:140px">${bar(v/mx*100,12,on?'var(--accent)':'')}</td><td style="font-weight:700">${eur(v)}</td><td style="font-size:15px">${prevI<0?'':pv===0?'<span class="muted">sin gasto antes</span>':`<span class="${d>0?'neg':'pos'}" style="font-weight:600">${(d>0?'+':'\u2212')+num2(Math.abs(d))} €</span>`}</td></tr>`; }).join('');
+  const last=lastMonthIdx(ag.tot);
+  // columna de la derecha: mes a mes del concepto elegido, o del total
+  const serie=sel!=null?(ag.by.get(sel)||Array(12).fill(0)):ag.tot, smax=Math.max(...serie.slice(0,last+1),1), stot=round2(sum(serie.slice(0,last+1)));
+  const mrows=serie.map((t,i)=>i>last?'':`<button class="mv" style="${i===mi?'background:var(--accent-soft);border-radius:10px':''}" data-act="gcmonth" data-m="${i}"><span class="d" style="width:44px;color:${i===mi?'var(--accent)':'var(--ink)'};font-weight:${i===mi?700:500}">${MSHORT[i]}</span><span style="flex:1">${bar(t/smax*100,10,i===mi?'var(--accent)':'var(--accent-2)')}</span><span class="a" style="font-weight:${i===mi?700:500}">${t>0?eur0(t)+' €':'—'}</span></button>`).join('');
+  const colDer=sel!=null
+    ?card(`<div class="row c" style="justify-content:space-between;margin-bottom:8px"><div class="h2">Mes a mes: ${esc(catName(sel))}</div><button class="linkbtn" data-act="gcsel" data-c="${esc(sel)}" style="font-size:14px">Quitar</button></div>${mrows}<div class="row" style="justify-content:space-between;margin-top:12px;padding-top:10px;border-top:2px solid var(--ink);font-weight:700"><span>Total ${S.year}</span><span>${eur(stot)}</span></div><p class="muted" style="font-size:14px;margin-top:4px">Media al mes: ${eur(stot/(last+1))}</p>`,'style="flex:1 1 320px;min-width:0"')
+    :card(`<div class="h2" style="margin-bottom:8px">Mes a mes</div>${mrows}`,'style="flex:1 1 320px;min-width:0"');
+  // tarjetas de arriba
+  let kp;
+  if(sel!=null){
+    const a=ag.by.get(sel)||Array(12).fill(0), v=a[mi], pv=prevI>=0?a[prevI]:null, b=Bp.by.get(sel)||Array(12).fill(0), ytd=round2(sum(a.slice(0,mi+1)));
+    kp=kpi(esc(catName(sel))+' en '+mlow(mi),eur(v),tm?pct1(v/tm*100)+' de los gastos del mes':'')
+      +(prevI>=0?kpi('Frente a '+mlow(prevI),pv?sg(round2(v-pv)):(v?'nuevo':'—'),MONTHS[prevI]+': '+eur(pv),pv?cl(v-pv):''):'')
+      +(hasLY?kpi('Frente a '+mlow(mi)+' '+ly,b[mi]?sg(round2(v-b[mi])):(v?'nuevo':'—'),MONTHS[mi]+' '+ly+': '+eur(b[mi]),b[mi]?cl(v-b[mi]):''):'')
+      +kpi('En lo que va de '+S.year,eur(ytd),'enero a '+mlow(mi)+' · media '+eur(ytd/(mi+1))+' al mes');
+  } else {
+    kp=kpi('Gastos de '+mlow(mi),eur(tm),cats.length+' conceptos')
+      +(prevI>=0?kpi('Frente a '+mlow(prevI),sg(diff),MONTHS[prevI]+': '+eur(tp),cl(diff)):'')
+      +(hasLY?kpi('Frente a '+mlow(mi)+' '+ly,Bp.tot[mi]?sg(round2(tm-Bp.tot[mi])):'—',Bp.tot[mi]?MONTHS[mi]+' '+ly+': '+eur(Bp.tot[mi]):'sin datos de '+mlow(mi)+' '+ly,Bp.tot[mi]?cl(tm-Bp.tot[mi]):''):'')
+      +(top!==undefined?kpi('Concepto mayor del mes',esc(catName(top)),eur(mx)):'');
+  }
   return shell('gasto',gcHead('mes',stepper(MONTHS[mi]+' '+S.year,190,'gcprev','gcnext'))
-    +`<div class="kpis">${kpi('Gastos de '+mlow(mi),eur(tm),cats.length+' conceptos')}${prevI>=0?kpi('Frente a '+mlow(prevI),(diff>0?'+':'\u2212')+num2(Math.abs(diff))+' €',MONTHS[prevI]+': '+eur(tp),diff>0?'neg':'pos'):''}${top!==undefined?kpi('Concepto mayor del mes',esc(catName(top)),eur(mx)):''}</div>`
-    +`<div class="row" style="align-items:flex-start">${card(`<div class="h2" style="margin-bottom:8px">Conceptos de ${mlow(mi)}</div><div class="tblwrap"><table class="t" style="min-width:560px"><thead><tr><th class="l">Concepto</th><th class="l"></th><th>${MONTHS[mi]}</th><th>${prevI>=0?'Frente a '+mlow(prevI):''}</th></tr></thead><tbody>${rows||'<tr><td class="l" colspan="4">Sin gastos este mes.</td></tr>'}</tbody></table></div>`,'style="flex:2 1 560px;min-width:0"')
-    +card(`<div class="h2" style="margin-bottom:8px">Mes a mes</div>${mrows}`,'style="flex:1 1 320px;min-width:0"')}</div>`,'');
+    +`<div class="kpis">${kp}</div>`
+    +`<div class="row" style="align-items:flex-start">${card(`<div class="h2" style="margin-bottom:4px">Conceptos de ${mlow(mi)}</div><p class="muted" style="font-size:14px;margin-bottom:8px">Toca un concepto para ver su mes a mes.</p><div class="tblwrap"><table class="t" style="min-width:560px"><thead><tr><th class="l">Concepto</th><th class="l"></th><th>${MONTHS[mi]}</th><th>${prevI>=0?'Frente a '+mlow(prevI):''}</th></tr></thead><tbody>${rows||'<tr><td class="l" colspan="4">Sin gastos este mes.</td></tr>'}</tbody></table></div>`,'style="flex:2 1 560px;min-width:0"')
+    +colDer}</div>`,'');
 }
 
 /* ================= todo el año ================= */
@@ -1248,6 +1272,7 @@ const ACT={
   gcpick(el){ S.gc.concept=el.dataset.c; if(el.tagName==='BUTTON') render(); },
   gcmovs(el){ S.f={q:'',cat:el.dataset.c,month:0,limit:80}; go('movs'); },
   gcmonth(el){ S.gc.month=+el.dataset.m; render(); },
+  gcsel(el){ const c=el.dataset.c; S.gc.sel=(S.gc.sel===c)?null:c; render(); },
   gcmonthgo(el){ S.gc.month=+el.dataset.m; go('gasto/mes'); },
   gcprev(){ const ag=aggYear(S.db.movs,S.year); let m=(S.gc.month!=null?S.gc.month:lastMonthIdx(ag.tot))-1; if(m<0){ m=11; S.year--; } S.gc.month=m; render(); },
   gcnext(){ const ag=aggYear(S.db.movs,S.year); let m=(S.gc.month!=null?S.gc.month:lastMonthIdx(ag.tot))+1; if(m>11){ m=0; S.year++; } S.gc.month=m; render(); },
