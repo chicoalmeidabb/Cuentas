@@ -223,6 +223,25 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
   .mv .c{display:none}
 }
 @media (prefers-reduced-motion:reduce){.side,.toast{transition:none}}
+
+.guia{display:flex;flex-direction:column;gap:18px;max-width:780px}
+.guia .gidx ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:2px 18px}
+.guia .gidx a{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 10px;border-radius:10px;text-decoration:none;color:var(--ink);font-weight:500}
+.guia .gidx a:hover{background:var(--accent-soft);color:var(--accent)}
+.guia .gidx small{margin-left:auto;color:var(--muted)}
+.guia .gsec{display:flex;flex-direction:column;gap:14px;scroll-margin-top:12px}
+.guia .gsec p,.guia .gsec li{line-height:1.55;font-size:17px;margin:0}
+.guia .gsec ol.pasos,.guia .gsec ul{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px}
+.guia .gsec ol.pasos li::marker{font-weight:700;color:var(--accent)}
+.guia .gsec .sub{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px;margin:0}
+.guia .gsec h3{font-size:18px;font-weight:700;margin:0}
+.guia .gsec .nota{background:var(--accent-soft);border-radius:10px;padding:12px 14px}
+.guia .gsec .aviso{background:var(--warn-bg);color:var(--ink);border-radius:10px;padding:12px 14px;border-left:4px solid var(--warn)}
+.guia .gsec a{color:var(--accent)}
+.guia .gsec a.top{align-self:flex-start;font-size:15px;font-weight:500;min-height:44px;display:inline-flex;align-items:center}
+.guia .gsec details{border:1px solid var(--line);border-radius:10px;padding:8px 14px}
+.guia .gsec summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.guia .gsec details p{margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -231,7 +250,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.1';
+const APP_VERSION='3.3';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -552,6 +571,7 @@ const ICONS={
  conc:'<path d="M21 12A9 9 0 1 1 12 3v9z"></path><path d="M16 3.5A9 9 0 0 1 20.5 8H16z"></path>',
  grid:'<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>',
+ book:'<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"></path><path d="M4 21V5"></path><path d="M9 8h6"></path>',
  trend:'<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>',
  gear:'<circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"></path>',
  back:'<path d="M15 6l-6 6 6 6"></path>', chev:'<path d="M9 6l6 6-6 6"></path>', down:'<path d="M6 9l6 6 6-6"></path>',
@@ -576,8 +596,8 @@ const bar=(w,h=12,c)=>`<div class="meter" style="height:${h}px"><i style="width:
 const catOpts=(sel,extra='')=>`${extra}`+S.db.cats.filter(c=>c.a).map(c=>`<option value="${esc(c.n)}"${c.n===sel?' selected':''}>${esc(c.n)}</option>`).join('');
 const catName=c=>c||'Sin categoría';
 
-const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear']];
-const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',tipos:'gasto',datos:'datos'};
+const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear'],['guia','Guía','book']];
+const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',tipos:'gasto',datos:'datos',guia:'guia'};
 function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='home'?' homesync':''}" data-sync="${where||'side'}" data-go="datos">${icon(S.sync.ico||'check','s')}<span>${esc(S.sync.txt||'Todo guardado')}</span></button>`; }
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
@@ -585,6 +605,260 @@ function shell(view,main,actions){
   return `<div class="app"><aside class="side"><img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><p class="brand" style="text-align:center">Cuentas</p><button class="addbtn" data-act="add">${icon('plus')}Apuntar gasto</button><button class="addbtn alt" data-act="addi">${icon('plus')}Apuntar ingreso</button><nav class="nav" aria-label="Secciones">${nav}</nav>${syncBtn('side')}<span class="ver">Versión ${APP_VERSION}</span></aside>
     <div class="main"><div class="topbar"><button class="sq" data-act="menu" aria-label="Menú">${icon('menu')}</button><p class="brand">Cuentas</p></div>
     <div class="scroll" id="scroll"><div class="col">${main}</div></div>${actions?`<div class="bar">${actions}</div>`:''}</div></div>`;
+}
+
+/* ================= guía ================= */
+const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índice</h2><ol>
+      <li><a href="#/guia/empezar">Para empezar <small>1</small></a></li>
+      <li><a href="#/guia/inicio">Inicio <small>2</small></a></li>
+      <li><a href="#/guia/gasto">Apuntar un gasto <small>3</small></a></li>
+      <li><a href="#/guia/ingreso">Apuntar un ingreso <small>4</small></a></li>
+      <li><a href="#/guia/nuevomes">Nuevo mes (extractos) <small>5</small></a></li>
+      <li><a href="#/guia/concepto">Gasto por concepto <small>6</small></a></li>
+      <li><a href="#/guia/anio">Todo el año <small>7</small></a></li>
+      <li><a href="#/guia/comparar">Comparar años <small>8</small></a></li>
+      <li><a href="#/guia/vacaciones">Gastos de vacaciones <small>9</small></a></li>
+      <li><a href="#/guia/movimientos">Movimientos <small>10</small></a></li>
+      <li><a href="#/guia/patrimonio">Patrimonio <small>11</small></a></li>
+      <li><a href="#/guia/valores">Valores y fondos <small>12</small></a></li>
+      <li><a href="#/guia/conceptos">Conceptos <small>13</small></a></li>
+      <li><a href="#/guia/datos">Datos y copias <small>14</small></a></li>
+      <li><a href="#/guia/instalar">Instalarla como app <small>15</small></a></li>
+      <li><a href="#/guia/fallos">Si algo falla <small>16</small></a></li>
+      <li><a href="#/guia/seguridad">Seguridad <small>17</small></a></li>
+    </ol></nav>
+<section class="card gsec" id="g-empezar">
+    <h2>Para empezar</h2>
+    <p>Cuentas guarda tus datos en tu Hoja de Google. La app solo los muestra y los modifica. Funciona en la tablet y en el PC con la misma hoja.</p>
+    <ol class="pasos">
+      <li>Abre la dirección de la app. La primera vez te pide la <b>dirección del script</b> (termina en /exec) y tu <b>clave</b>.</li>
+      <li>Escríbelas y pulsa <b>Conectar</b>. Se piden una vez en cada dispositivo.</li>
+      <li>Abajo a la izquierda, o en el menú de la tablet, verás el estado: <b>Todo guardado</b> significa que no queda nada pendiente.</li>
+    </ol>
+    <div class="nota">La versión de la app aparece abajo del menú: «Versión ${APP_VERSION}». Si en un dispositivo ves otra, mira <a href="#/guia/fallos">Si algo falla</a>.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-inicio">
+    <h2>Inicio</h2>
+    <p>Es la pantalla de entrada. Reúne los accesos a las demás pantallas y el resumen del mes. Siempre puedes volver pulsando <b>Inicio</b> en el menú.</p>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-gasto">
+    <h2>Apuntar un gasto</h2>
+    <p>Para un gasto suelto, como un café o una compra en efectivo.</p>
+    <ol class="pasos">
+      <li>Pulsa el botón azul <b>Apuntar gasto</b>.</li>
+      <li>Escribe el importe, la descripción y elige el concepto y la fecha.</li>
+      <li>En Coches y en Ayuntamiento puedes poner el <b>tipo</b> (seguro, impuesto…).</li>
+      <li>Pulsa <b>Guardar</b>.</li>
+    </ol>
+    <p>Para cambiarlo o borrarlo, búscalo en <a href="#/guia/movimientos">Movimientos</a> y púlsalo.</p>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-ingreso">
+    <h2>Apuntar un ingreso</h2>
+    <ol class="pasos">
+      <li>Pulsa <b>Apuntar ingreso</b>.</li>
+      <li>Pon importe, descripción, tipo, fecha y cuenta (por ejemplo, Metálico).</li>
+      <li>Pulsa <b>Guardar</b>.</li>
+    </ol>
+    <div class="nota">Un ingreso no se descuenta de ningún gasto. Sirve para ver cuánto entra al año y cuánto queda.</div>
+    <p>Los ingresos aparecen en <b>Movimientos</b>, en la pestaña Ingresos.</p>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-nuevomes">
+    <h2>Nuevo mes (extractos)</h2>
+    <p>Aquí cargas los extractos del banco de un mes. Son tres pasos.</p>
+    <ol class="pasos">
+      <li>Pulsa <b>Nuevo mes</b> y elige el mes.</li>
+      <li><b>Paso 1:</b> sube el extracto de cada cuenta (Excel o CSV). La app detecta los traspasos y los duplicados.</li>
+      <li><b>Paso 2:</b> revisa los gastos. Los que no reconoce los asignas a un concepto, y la app lo recuerda para el mes siguiente.</li>
+      <li><b>Paso 3:</b> cierra el mes. Puedes añadir otros ingresos que falten y los saldos.</li>
+    </ol>
+    <div class="aviso">La app todavía no lee PDF ni fotos de capturas. Si solo tienes PDF, pásamelo y lo convierto a Excel.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-concepto">
+    <h2>Gasto por concepto</h2>
+    <p>Muestra cuánto has gastado en cada concepto (Supermercado, Luz, Coche…).</p>
+    <ol class="pasos">
+      <li>Abre <b>Gasto por concepto</b>.</li>
+      <li>Pulsa un concepto.</li>
+      <li>A la derecha ves el mes a mes de ese concepto, de enero a diciembre.</li>
+          </ol>
+    <p>En Coches y en Ayuntamiento, <b>Poner tipo</b> te deja marcar cada gasto como seguro, impuesto, etc.</p>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-anio">
+    <h2>Todo el año</h2>
+    <p>Una tabla con todos los conceptos y los doce meses, con los totales de gastos, ingresos y lo que queda.</p>
+    <ol class="pasos">
+      <li>Abre <b>Todo el año</b>.</li>
+      <li>Cambia de año con las flechas.</li>
+      <li>Pulsa el importe de un mes en la fila <b>Ingresos</b> para anotar o cambiar el total de ese mes.</li>
+    </ol>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-comparar">
+    <h2>Comparar años</h2>
+    <p>Compara un año con el anterior hasta el mes que ya tienes cargado, para que la comparación sea justa.</p>
+    <ol class="pasos">
+      <li>Abre <b>Comparar años</b>.</li>
+      <li>Elige el año con las flechas.</li>
+      <li>Si quieres, cambia el mes hasta el que se compara.</li>
+    </ol>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-vacaciones">
+    <h2>Gastos de vacaciones</h2>
+    <p>Las vacaciones funcionan como un filtro. Eliges unas fechas y la app te enseña los gastos de esos días.</p>
+    <ol class="pasos">
+      <li>Abre <b>Gastos de vacaciones</b>.</li>
+      <li>Elige el rango: desde qué día hasta qué día.</li>
+      <li>Marca el rango. Salen todos los gastos de esas fechas.</li>
+      <li>Si hay un gasto que no era de las vacaciones, quítalo del filtro con su botón.</li>
+    </ol>
+    <div class="nota">Quitar un gasto de las vacaciones <b>no lo borra</b> de tus cuentas. Solo sale del filtro.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-movimientos">
+    <h2>Movimientos</h2>
+    <p>La lista de todos los gastos e ingresos apuntados.</p>
+    <ol class="pasos">
+      <li>Abre <b>Movimientos</b>.</li>
+      <li>Busca por texto, concepto o mes.</li>
+      <li>Cambia entre gastos e ingresos con las pestañas de arriba.</li>
+      <li>Pulsa un movimiento para editarlo o borrarlo.</li>
+    </ol>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-patrimonio">
+    <h2>Patrimonio</h2>
+    <p>Lo que tienes en total: metálico, valores y fondos y depósitos. Cada vez que apuntas tus saldos haces una <b>foto</b>. La foto cierra el mes anterior.</p>
+    <div class="sub">
+      <h3>Hacer una foto nueva</h3>
+      <ol class="pasos">
+        <li>Pulsa <b>Nueva foto</b>.</li>
+        <li>Pon el saldo de cada posición. Si no cambia, déjalo como está.</li>
+        <li>Guarda. Lo que no actualizas se arrastra con su último valor.</li>
+      </ol>
+    </div>
+    <div class="sub">
+      <h3>Las cuatro pestañas</h3>
+      <ul>
+        <li><b>Fotos del año:</b> las fotos del año con su gráfico, el reparto y la tabla por posición. Cambia de año con las flechas.</li>
+        <li><b>Antes y ahora:</b> elige un año y ves qué tenías entonces y qué tienes hoy.</li>
+        <li><b>Año a año:</b> la última foto de cada año, de 2013 a hoy, en barras o en %.</li>
+        <li><b>Valores y fondos:</b> cada acción y cada fondo por separado. Mira <a href="#/guia/valores">el apartado siguiente</a>.</li>
+      </ul>
+    </div>
+    <div class="nota">El cambio entre fotos incluye lo que has metido o sacado. Por eso un total puede bajar sin que hayas perdido dinero.</div>
+    <div class="sub">
+      <h3>Una bajada entre dos fotos</h3>
+      <ol class="pasos">
+        <li>Ve a <b>Fotos del año</b> y baja a la tabla de posiciones.</li>
+        <li>Compara las dos últimas columnas, fila por fila.</li>
+        <li>La fila que más baja es la causa.</li>
+      </ol>
+      <p>Si el aviso dice que alguna posición no se ha actualizado, pulsa <b>Actualizarlas ahora</b>.</p>
+    </div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-valores">
+    <h2>Valores y fondos</h2>
+    <p>Para ver cuánto ha cambiado cada acción y cada fondo desde el primer dato, y cuánto has ganado o perdido de verdad.</p>
+    <ol class="pasos">
+      <li>Ve a <b>Patrimonio</b> y abre la pestaña <b>Valores y fondos</b>.</li>
+      <li>Elige <b>Acciones</b> o <b>Fondos y depósitos</b>.</li>
+      <li>La tabla da, para cada posición, el primer dato, el valor de ahora y el cambio en € y en %.</li>
+      <li>Pulsa una fila para ver su gráfico.</li>
+      <li>Pulsa <b>Anotar compra, venta o dividendo</b> y rellena el tipo, el importe y la fecha.</li>
+    </ol>
+    <div class="sub">
+      <h3>Qué es «Cambio» y qué es «Ganancia real»</h3>
+      <ul>
+        <li><b>Cambio:</b> lo que ha subido o bajado el valor. Incluye lo que hayas comprado o vendido.</li>
+        <li><b>Ganancia real:</b> aparece cuando anotas compras y ventas, o el coste de lo que ya tenías. Es lo que vale ahora, menos lo que pagaste, más lo vendido y los dividendos.</li>
+      </ul>
+    </div>
+    <div class="sub">
+      <h3>Los cuatro tipos de anotación</h3>
+      <ul>
+        <li><b>Compra:</b> lo que pagaste.</li>
+        <li><b>Venta:</b> lo que cobraste.</li>
+        <li><b>Dividendo:</b> lo que te ingresaron.</li>
+        <li><b>Coste de lo que ya tenía:</b> lo que pagaste por lo que tenías hasta esa fecha. Con él, la app calcula la <b>ganancia desde que compraste</b>. Entonces solo cuentan las compras, ventas y dividendos que anotes con fecha posterior.</li>
+      </ul>
+    </div>
+    <p>En el gráfico, las rayas con C, V o D marcan tus compras, ventas y dividendos. Para quitar una anotación, pulsa <b>Quitar</b> y confirma.</p>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-conceptos">
+    <h2>Conceptos</h2>
+    <p>La lista de conceptos de gasto. Aquí los cambias y los organizas.</p>
+    <ol class="pasos">
+      <li>Abre <b>Conceptos</b>.</li>
+      <li>Pulsa <b>Añadir concepto</b> para crear uno.</li>
+      <li>Pulsa un concepto para cambiarle el nombre u ocultarlo.</li>
+      <li>Para unir dos conceptos, abre uno y elige el otro en <b>Fusionar con otro concepto</b> (por ejemplo, Amazon, Temu y AliExpress en «Compras por Internet»). Los gastos antiguos pasan al concepto que queda.</li>
+    </ol>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-datos">
+    <h2>Datos y copias</h2>
+    <p>Aquí ves el estado de la conexión y haces copias.</p>
+    <ul>
+      <li><b>Descargar copia en Excel:</b> baja un Excel con todo. Guárdalo de vez en cuando.</li>
+      <li><b>Cargar una copia:</b> sube un Excel de Cuentas (el de una copia, o uno que te haya preparado yo).</li>
+      <li><b>Cambiar conexión:</b> para escribir de nuevo la dirección del script o la clave.</li>
+      <li><b>Pendientes:</b> si no había red, los cambios esperan y se envían solos al volver.</li>
+    </ul>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-instalar">
+    <h2>Instalarla como app</h2>
+    <ol class="pasos">
+      <li>Abre la dirección de la app en Chrome.</li>
+      <li>Pulsa el botón <b>Instalar app</b>, si aparece.</li>
+      <li>Confirma. Aparece el icono de Cuentas en tu pantalla.</li>
+    </ol>
+    <div class="aviso">Si ya había un acceso directo viejo, bórralo antes de instalar. Si no ves el botón, recarga la página.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-fallos">
+    <h2>Si algo falla</h2>
+    <details>
+      <summary>Veo una versión antigua</summary>
+      <p>En el PC, pulsa Ctrl+Shift+R. En la tablet, cierra la app del todo y ábrela otra vez. Si sigue igual, ábrela en una ventana de incógnito para comprobar que la nueva versión está subida.</p>
+    </details>
+    <details>
+      <summary>Dice «La clave no es correcta»</summary>
+      <p>Ve a Datos y copias, pulsa <b>Cambiar conexión</b> y escribe de nuevo la dirección y tu clave. La clave es la que está en la línea 10 del script de Google.</p>
+    </details>
+    <details>
+      <summary>Dice «Sin conexión» o hay cambios pendientes</summary>
+      <p>No pasa nada. La app guarda los cambios y los envía sola cuando vuelve internet. Puedes pulsar Datos y copias para ver cuántos quedan.</p>
+    </details>
+    <details>
+      <summary>Me pide actualizar el script a una versión nueva</summary>
+      <p>Ciertas funciones piden una versión del script de Google más reciente. Abre el script, pega el código nuevo, pon de nuevo tu clave en la línea 10 y vuelve a implementarlo como versión nueva.</p>
+    </details>
+    <div class="aviso">No uses «Borrar datos del sitio» en Chrome. La aplicación de baloncesto comparte la misma dirección base y perdería sus datos.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-seguridad">
+    <h2>Seguridad</h2>
+    <ul>
+      <li>Tus datos viven en tu Hoja de Google. El código de la app, que es público en GitHub, no contiene datos ni claves.</li>
+      <li>La clave solo se guarda en cada dispositivo y en la línea 10 del script.</li>
+      <li>No guardes contraseñas, pistas ni números de cuenta en la app ni en los ficheros que subas. Usa un gestor de contraseñas.</li>
+      <li>Borra de la tablet los ficheros viejos con claves cuando ya los hayas cargado.</li>
+    </ul>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+`;
+function guiaView(){
+  return shell('guia',`<header class="col" style="gap:6px"><h1 class="h1">Guía de Cuentas</h1><p class="sub">Qué hace cada pantalla y cómo se usa. Pulsa un apartado para ir a su explicación.</p></header><div class="guia">${GUIA_HTML}</div><p class="muted" style="font-size:14px">Versión ${APP_VERSION}</p>`,'');
 }
 
 /* ================= router ================= */
@@ -599,6 +873,7 @@ function render(top){
   const fn=VIEWS[name]||VIEWS.inicio;
   app.innerHTML=fn(arg);
   const sc=$('#scroll'); if(sc) sc.scrollTop=keep;
+  if(name==='guia'&&sc){ const t=arg?document.getElementById('g-'+arg):null; if(t) t.scrollIntoView(); else sc.scrollTop=0; }
   setSync();
 }
 
@@ -1186,9 +1461,10 @@ function vfStats(pid,pc,mv){
   const cambio=round2(cur.v-first.v), compras=sm(after,'compra'), ventas=sm(after,'venta'), divs=sm(after,'dividendo');
   const hay=after.length>0, base=first.v+compras;
   const resultado=hay?round2(cambio-compras+ventas+divs):null;
-  const coste=sm(all,'coste'), tCompras=sm(all,'compra'), tVentas=sm(all,'venta'), tDivs=sm(all,'dividendo');
+  const coste=sm(all,'coste'), cd=all.filter(m=>m.t==='coste').map(m=>m.f).sort().pop()||'', post=cd?all.filter(m=>m.f>cd):all;
+  const tCompras=sm(post,'compra'), tVentas=sm(post,'venta'), tDivs=sm(post,'dividendo');
   const ganTotal=coste>0?round2(cur.v-coste-tCompras+tVentas+tDivs):null, baseT=coste+tCompras;
-  return {pts,first,cur,cambio,compras,ventas,divs,hay,resultado,resPct:hay&&base>0?resultado/base:null,coste,ganTotal,gtPct:ganTotal!=null&&baseT>0?ganTotal/baseT:null,closed:cur.f<pc[pc.length-1].f,uno:pts.length===1,all};
+  return {pts,first,cur,cambio,compras,ventas,divs,hay,resultado,resPct:hay&&base>0?resultado/base:null,coste,costeF:cd,ganTotal,gtPct:ganTotal!=null&&baseT>0?ganTotal/baseT:null,closed:cur.f<pc[pc.length-1].f,uno:pts.length===1,all};
 }
 function vfChart(s,pc){
   const W=760,H=260,L=64,R=14,T=16,B=32, pts=s.pts.slice(); if(s.cur.f>pts[pts.length-1].f) pts.push({f:s.cur.f,v:s.cur.v});
@@ -1213,13 +1489,13 @@ function valoresView(){
   const G=patGrupos(S.db), k=tab==='Fondos'?'d':'v', gf=G.find(x=>x[k]>0), gl=G[G.length-1];
   const chips=[['Acciones','Acciones'],['Fondos','Fondos y depósitos']].map(([v,l])=>`<button class="chip" data-act="vftab" data-t="${v}" aria-pressed="${v===tab}">${l}</button>`).join('');
   const sel=rowsAll.find(x=>x.p.id===S.vf.sel);
-  const fila=({p,s})=>{ const c=clsd(s.cambio), r=s.resultado; return `<tr data-act="vfsel" data-id="${esc(p.id)}" ${sel&&sel.p.id===p.id?'style="background:var(--accent-soft)"':''}><td class="l" style="font-weight:600">${esc(p.n)}${s.closed?'<span class="muted" style="font-weight:500;font-size:12px;display:block">cerrada en '+fmtF(s.cur.f)+'</span>':''}${s.uno?'<span class="muted" style="font-weight:500;font-size:12px;display:block">un solo mes</span>':''}</td><td>${eur0(s.first.v)} €<span class="muted" style="font-size:12px;display:block">${fmtF(s.first.f)}</span></td><td>${eur0(s.cur.v)} €</td><td class="${c}" style="font-weight:700">${sgn0(s.cambio)} €</td><td class="${c}" style="font-size:15px">${s.first.v>0?sgp(s.cambio,s.first.v):'<span class="muted">nuevo</span>'}</td><td class="${r==null?'':clsd(r)}" style="font-weight:700">${r==null?'<span class="muted" style="font-weight:500">—</span>':sgn0(r)+' €'}</td></tr>`; };
+  const fila=({p,s})=>{ const c=clsd(s.cambio), r=s.ganTotal!=null?s.ganTotal:s.resultado; return `<tr data-act="vfsel" data-id="${esc(p.id)}" ${sel&&sel.p.id===p.id?'style="background:var(--accent-soft)"':''}><td class="l" style="font-weight:600">${esc(p.n)}${s.closed?'<span class="muted" style="font-weight:500;font-size:12px;display:block">cerrada en '+fmtF(s.cur.f)+'</span>':''}${s.uno?'<span class="muted" style="font-weight:500;font-size:12px;display:block">un solo mes</span>':''}</td><td>${eur0(s.first.v)} €<span class="muted" style="font-size:12px;display:block">${fmtF(s.first.f)}</span></td><td>${eur0(s.cur.v)} €</td><td class="${c}" style="font-weight:700">${sgn0(s.cambio)} €</td><td class="${c}" style="font-size:15px">${s.first.v>0?sgp(s.cambio,s.first.v):'<span class="muted">nuevo</span>'}</td><td class="${r==null?'':clsd(r)}" style="font-weight:700">${r==null?'<span class="muted" style="font-weight:500">—</span>':sgn0(r)+' €'}</td></tr>`; };
   let det='';
   if(sel){ const {p,s}=sel;
-    const movs=[...s.all].sort((a,b)=>b.f.localeCompare(a.f)).map(m=>`<tr><td class="l">${fmtF(m.f)}</td><td class="l">${vmName(m.t)}${m.n?'<span class="muted" style="display:block;font-size:13px">'+esc(m.n)+'</span>':''}</td><td>${eur(m.i)} €</td><td><button class="btn alt" style="min-height:40px;padding:0 14px" data-act="vfdel" data-id="${esc(m.id)}">Quitar</button></td></tr>`).join('');
+    const movs=[...s.all].sort((a,b)=>b.f.localeCompare(a.f)).map(m=>`<tr><td class="l">${fmtF(m.f)}</td><td class="l">${vmName(m.t)}${m.n?'<span class="muted" style="display:block;font-size:13px">'+esc(m.n)+'</span>':''}</td><td>${eur(m.i)}</td><td><button class="btn alt" style="min-height:40px;padding:0 14px" data-act="vfdel" data-id="${esc(m.id)}">Quitar</button></td></tr>`).join('');
     det=card(`<div class="row c" style="justify-content:space-between;margin-bottom:12px"><div class="h2">${esc(p.n)}</div><button class="btn" data-act="vfnew" data-id="${esc(p.id)}">Anotar compra, venta o dividendo</button></div>
-      <div class="kpis">${kpi('Primer dato',eur0(s.first.v)+' €',fmtF(s.first.f))}${kpi(s.closed?'Último dato':'Ahora',eur0(s.cur.v)+' €',fmtF(s.cur.f))}${kpi('Cambio de valor',sgn0(s.cambio)+' €',s.first.v>0?sgp(s.cambio,s.first.v):'',clsd(s.cambio))}${s.hay?kpi('Resultado real',sgn0(s.resultado)+' €',s.resPct!=null?(s.resultado<0?'\u2212':'+')+pct1(s.resPct*100):'',clsd(s.resultado)):kpi('Resultado real','—','apunta lo que compraste o vendiste')}</div>
-      ${s.ganTotal!=null?`<p style="margin:12px 0 0">Contando lo que pagaste por lo que ya tenías (${eur0(s.coste)} €): <b class="${clsd(s.ganTotal)}">${sgn0(s.ganTotal)} €</b>${s.gtPct!=null?' ('+(s.ganTotal<0?'−':'+')+pct1(s.gtPct*100)+')':''}.</p>`:''}
+      <div class="kpis">${kpi('Primer dato',eur0(s.first.v)+' €',fmtF(s.first.f))}${kpi(s.closed?'Último dato':'Ahora',eur0(s.cur.v)+' €',fmtF(s.cur.f))}${kpi('Cambio de valor',sgn0(s.cambio)+' €',s.first.v>0?sgp(s.cambio,s.first.v):'',clsd(s.cambio))}${s.hay?kpi('Resultado desde el primer dato',sgn0(s.resultado)+' €',s.resPct!=null?(s.resultado<0?'\u2212':'+')+pct1(s.resPct*100):'',clsd(s.resultado)):kpi('Resultado desde el primer dato','—','apunta lo que compraste o vendiste')}</div>
+      ${s.ganTotal!=null?`<div class="kpis" style="margin-top:12px">${kpi('Ganancia desde que compraste',sgn0(s.ganTotal)+' €',(s.gtPct!=null?(s.ganTotal<0?'−':'+')+pct1(s.gtPct*100)+' · ':'')+'coste '+eur0(s.coste)+' € a '+fmtF(s.costeF),clsd(s.ganTotal))}</div>`:''}
       <div class="tblwrap" style="margin-top:14px">${vfChart(s,pc)}</div>
       <p class="muted" style="font-size:14px;margin:8px 0 14px">${s.pts.length} ${s.pts.length===1?'foto':'fotos'} con dato. Las rayas con C, V o D son tus compras, ventas y dividendos.</p>
       ${movs?`<div class="tblwrap"><table class="t" style="min-width:420px"><thead><tr><th class="l">Fecha</th><th class="l">Qué</th><th>Importe</th><th></th></tr></thead><tbody>${movs}</tbody></table></div>`:'<p class="muted">Todavía no has apuntado compras, ventas ni dividendos de esta posición.</p>'}`);
@@ -1228,9 +1504,9 @@ function valoresView(){
   const main=patHead('valores','Cada acción y cada fondo, desde el primer dato que hay.')
    +card(`<div class="chips">${chips}</div>`)
    +(kg?`<div class="kpis">${kg}</div>`:'')
-   +card(`<div class="h2" style="margin-bottom:8px">${lbl}</div>${rowsAll.length?`<div class="tblwrap"><table class="t" style="min-width:640px"><thead><tr><th class="l">Posición</th><th>Primer dato</th><th>${rowsAll.some(x=>x.s.closed)?'Ahora o último':'Ahora'}</th><th>Cambio</th><th>%</th><th>Resultado real</th></tr></thead><tbody>${rowsAll.map(fila).join('')}</tbody></table></div>`:'<div class="empty">No hay posiciones en este grupo.</div>'}
+   +card(`<div class="h2" style="margin-bottom:8px">${lbl}</div>${rowsAll.length?`<div class="tblwrap"><table class="t" style="min-width:640px"><thead><tr><th class="l">Posición</th><th>Primer dato</th><th>${rowsAll.some(x=>x.s.closed)?'Ahora o último':'Ahora'}</th><th>Cambio</th><th>%</th><th>Ganancia real</th></tr></thead><tbody>${rowsAll.map(fila).join('')}</tbody></table></div>`:'<div class="empty">No hay posiciones en este grupo.</div>'}
      <p class="muted" style="font-size:14px;margin-top:12px">Pulsa una fila para ver su gráfico y apuntar compras, ventas y dividendos.</p>
-     <p class="muted" style="font-size:14px;margin-top:6px"><b>Cambio</b> es lo que ha subido o bajado el valor, e incluye lo que hayas comprado o vendido. <b>Resultado real</b> sale cuando apuntas esas compras y ventas: lo que vale ahora, menos lo que valía en el primer dato, menos lo que has comprado desde entonces, más lo vendido y los dividendos.</p>`)
+     <p class="muted" style="font-size:14px;margin-top:6px"><b>Cambio</b> es lo que ha subido o bajado el valor, e incluye lo que hayas comprado o vendido. <b>Ganancia real</b> sale cuando apuntas el coste de lo que ya tenías o tus compras y ventas: con el coste, lo que vale ahora menos lo que pagaste, más lo vendido y los dividendos. Sin el coste, se cuenta desde el primer dato.</p>`)
    +det;
   return shell('pat',main,'');
 }
@@ -1518,7 +1794,7 @@ async function restoreBackup(file){
     (rows('Posiciones')||[]).forEach(r=>commit('savePos',{fila:[String(r[0]),String(r[1]),String(r[2]),String(r[3]),String(r[4]),Number(r[5])||0,String(r[6]||''),String(r[7]||'')]}));
     const F=rows('Fotos')||[], V=rows('FotosValores')||[];
     F.forEach(r=>{ const id=String(r[0]); commit('saveFoto',{foto:[id,iso(r[1]),String(r[2]).slice(0,7)],valores:V.filter(v=>String(v[0])===id).map(v=>[String(v[1]),Number(v[2])||0])}); });
-    (rows('Config')||[]).filter(r=>['vacaciones','vacaciones_ex','valores_mov'].includes(String(r[0]))).forEach(r=>commit('setCfg',{clave:String(r[0]),valor:String(r[1])}));
+    (rows('Config')||[]).filter(r=>['vacaciones','vacaciones_ex','valores_mov'].includes(String(r[0]))).forEach(r=>{ const k=String(r[0]); let v=String(r[1]); if(k==='valores_mov'){ try{ const nu=JSON.parse(v), ya=vmList(), ids=new Set(ya.map(m=>m.id)); v=JSON.stringify([...ya,...nu.filter(m=>m&&m.id&&!ids.has(m.id))]); }catch(err){ return; } } commit('setCfg',{clave:k,valor:v}); });
     const L=(rows('Aprendizaje')||[]).map(r=>[String(r[0]),String(r[1]),String(r[2])]); if(L.length) commit('saveLearn',{items:L});
     render(); toast(`Copia cargada: ${filas.length} movimientos revisados.`);
   }catch(e){ toast('No se pudo cargar la copia: '+e.message); }
@@ -1594,7 +1870,7 @@ function openClose(id){ const p=S.db.pos.find(x=>x.id===id); const pc=patCalc(S.
 function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; let h=''; if(!reopen){ h=$('#p-h').value; if(!parseDate(h)) return entryErr('Pon una fecha válida.'); }
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
-const VIEWS={inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,tipos:tiposView,datos:datosView};
+const VIEWS={guia:guiaView,inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,tipos:tiposView,datos:datosView};
 
 /* ================= eventos ================= */
 const ACT={
