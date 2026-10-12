@@ -231,7 +231,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.0';
+const APP_VERSION='3.1';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -462,7 +462,7 @@ const S={
   sync:{state:'ok',msg:'',last:null,version:'',hoja:''},
   route:{name:'inicio',params:{}}, wiz:null, foto:null,
   year:new Date().getFullYear(), sort:'orden',
-  f:{q:'',cat:'',month:0,limit:80,vac:false}, gc:{concept:null,month:null,sel:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}, tp:{concept:null,sel:null,extra:[]}
+  f:{q:'',cat:'',month:0,limit:80,vac:false}, gc:{concept:null,month:null,sel:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}, vf:{tab:'Acciones',sel:null}, tp:{concept:null,sel:null,extra:[]}
 };
 
 if(S.db&&!S.db.ingMov) S.db.ingMov=[];
@@ -1112,7 +1112,7 @@ const sgn0=n=>(n>0?'+':n<0?'\u2212':'')+nf0.format(Math.abs(Math.round(n)));
 const sgp=(n,b)=>b?(n>0?'+':n<0?'\u2212':'')+pct1(n/b*100):'';
 const clsd=n=>n>0?'pos':n<0?'neg':'';
 function patTabs(act){
-  return `<div class="seg" role="group" aria-label="Vistas del patrimonio">${[['','Fotos del año'],['antes','Antes y ahora'],['anios','Año a año']].map(([k,l])=>`<a href="#/pat${k?'/'+k:''}" ${k===act?'aria-current="page"':''}>${l}</a>`).join('')}</div>`;
+  return `<div class="seg" role="group" aria-label="Vistas del patrimonio">${[['','Fotos del año'],['antes','Antes y ahora'],['anios','Año a año'],['valores','Valores y fondos']].map(([k,l])=>`<a href="#/pat${k?'/'+k:''}" ${k===act?'aria-current="page"':''}>${l}</a>`).join('')}</div>`;
 }
 function patHead(act,sub){
   return `<header class="col" style="gap:14px"><div class="row c" style="justify-content:space-between"><div><h1 class="h1">Patrimonio</h1>${sub?`<p class="sub">${sub}</p>`:''}</div><a class="btn" href="#/foto">Nueva foto</a></div>${patTabs(act)}</header>`;
@@ -1170,10 +1170,93 @@ function aniosView(){
   return shell('pat',main,'');
 }
 
+/* ================= valores y fondos: cambio de valor y ganancia real por posición ================= */
+// Las compras, ventas y dividendos se guardan en Config (clave valores_mov) como lista; no hace falta cambiar el script.
+const VM_TIPOS=[['compra','Compra'],['venta','Venta'],['dividendo','Dividendo'],['coste','Coste de lo que ya tenía al empezar']];
+const vmName=t=>(VM_TIPOS.find(x=>x[0]===t)||[0,t])[1];
+function vmList(){ try{ const x=JSON.parse((S.db.cfg&&S.db.cfg.valores_mov)||'[]'); if(Array.isArray(x)) return x.filter(r=>r&&r.id&&r.p&&r.f&&r.i>0); }catch(err){} return []; }
+function vmSave(a){ const j=JSON.stringify(a); if(j.length>45000){ toast('Hay demasiadas anotaciones para guardarlas.'); return false; } commit('setCfg',{clave:'valores_mov',valor:j}); return true; }
+const fmtF=f=>dayShort(f)+' '+f.slice(0,4);
+function vfStats(pid,pc,mv){
+  const pts=[]; pc.forEach(ph=>{ const x=ph.vals[pid]; if(x&&x.real) pts.push({f:ph.f,v:x.v}); });
+  let cur=null; for(let j=pc.length-1;j>=0;j--){ const x=pc[j].vals[pid]; if(x){ cur={f:pc[j].f,v:x.v}; break; } }
+  if(!pts.length||!cur) return null;
+  const first=pts[0], all=mv.filter(m=>m.p===pid), after=all.filter(m=>m.f>first.f);
+  const sm=(l,t)=>round2(sum(l.filter(m=>m.t===t).map(m=>m.i)));
+  const cambio=round2(cur.v-first.v), compras=sm(after,'compra'), ventas=sm(after,'venta'), divs=sm(after,'dividendo');
+  const hay=after.length>0, base=first.v+compras;
+  const resultado=hay?round2(cambio-compras+ventas+divs):null;
+  const coste=sm(all,'coste'), tCompras=sm(all,'compra'), tVentas=sm(all,'venta'), tDivs=sm(all,'dividendo');
+  const ganTotal=coste>0?round2(cur.v-coste-tCompras+tVentas+tDivs):null, baseT=coste+tCompras;
+  return {pts,first,cur,cambio,compras,ventas,divs,hay,resultado,resPct:hay&&base>0?resultado/base:null,coste,ganTotal,gtPct:ganTotal!=null&&baseT>0?ganTotal/baseT:null,closed:cur.f<pc[pc.length-1].f,uno:pts.length===1,all};
+}
+function vfChart(s,pc){
+  const W=760,H=260,L=64,R=14,T=16,B=32, pts=s.pts.slice(); if(s.cur.f>pts[pts.length-1].f) pts.push({f:s.cur.f,v:s.cur.v});
+  const t0=Date.parse(pts[0].f), t1=Math.max(Date.parse(pts[pts.length-1].f),t0+86400000*30);
+  const vs=pts.map(p=>p.v), mx0=Math.max(...vs,1), step=[100,200,500,1000,2000,5000,10000,20000,25000,50000].find(x=>mx0*1.08/x<=5)||50000, hi=Math.ceil(mx0*1.05/step)*step, lo=0;
+  const X=f=>L+(Date.parse(f)-t0)/(t1-t0)*(W-L-R), Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let svg=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Valor a lo largo del tiempo">`;
+  for(let v=0;v<=hi;v+=step) svg+=`<line x1="${L-6}" x2="${W-R+6}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"></line><text x="0" y="${(Y(v)+4).toFixed(1)}" font-size="13" fill="var(--muted)">${step>=1000?nf0.format(v/1000)+' mil':nf0.format(v)}</text>`;
+  const y0=new Date(t0).getFullYear(), y1=new Date(t1).getFullYear(), ny=y1-y0+1, every=Math.max(1,Math.ceil(ny/10));
+  for(let y=y0;y<=y1;y+=every){ const x=Math.min(Math.max(L+(Date.UTC(y,0,1)-t0)/(t1-t0)*(W-L-R),L),W-R); svg+=`<text x="${x.toFixed(1)}" y="${H-8}" font-size="13" text-anchor="${y===y0?'start':'middle'}" fill="var(--muted)">${y}</text>`; }
+  if(pts.length>1) svg+=`<polyline fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p=>X(p.f).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ')}"></polyline>`;
+  const lp=pts[pts.length-1], fp=pts[0];
+  svg+=`<circle cx="${X(lp.f).toFixed(1)}" cy="${Y(lp.v).toFixed(1)}" r="6" fill="var(--accent)"></circle><circle cx="${X(fp.f).toFixed(1)}" cy="${Y(fp.v).toFixed(1)}" r="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"></circle>`;
+  s.all.filter(m=>m.t!=='coste'&&m.f>=pts[0].f&&m.f<=pts[pts.length-1].f).forEach(m=>{ const x=X(m.f).toFixed(1); svg+=`<line x1="${x}" x2="${x}" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="3 4"></line><text x="${x}" y="${T+10}" font-size="12" font-weight="700" text-anchor="middle" fill="var(--ink)">${m.t==='compra'?'C':m.t==='venta'?'V':'D'}</text><title>${vmName(m.t)} ${eur(m.i)} € · ${fmtF(m.f)}</title>`; });
+  return svg+'</svg>';
+}
+function valoresView(){
+  const pc=patCalc(S.db), mv=vmList();
+  if(!pc.length) return shell('pat',patHead('valores','')+'<div class="empty">Todavía no hay fotos.</div>','');
+  const tab=S.vf.tab==='Fondos'?'Fondos':'Acciones', lbl=tab==='Fondos'?'Fondos y depósitos':'Acciones';
+  const rowsAll=S.db.pos.filter(p=>p.g===tab).sort((a,b)=>a.o-b.o).map(p=>({p,s:vfStats(p.id,pc,mv)})).filter(x=>x.s);
+  const G=patGrupos(S.db), k=tab==='Fondos'?'d':'v', gf=G.find(x=>x[k]>0), gl=G[G.length-1];
+  const chips=[['Acciones','Acciones'],['Fondos','Fondos y depósitos']].map(([v,l])=>`<button class="chip" data-act="vftab" data-t="${v}" aria-pressed="${v===tab}">${l}</button>`).join('');
+  const sel=rowsAll.find(x=>x.p.id===S.vf.sel);
+  const fila=({p,s})=>{ const c=clsd(s.cambio), r=s.resultado; return `<tr data-act="vfsel" data-id="${esc(p.id)}" ${sel&&sel.p.id===p.id?'style="background:var(--accent-soft)"':''}><td class="l" style="font-weight:600">${esc(p.n)}${s.closed?'<span class="muted" style="font-weight:500;font-size:12px;display:block">cerrada en '+fmtF(s.cur.f)+'</span>':''}${s.uno?'<span class="muted" style="font-weight:500;font-size:12px;display:block">un solo mes</span>':''}</td><td>${eur0(s.first.v)} €<span class="muted" style="font-size:12px;display:block">${fmtF(s.first.f)}</span></td><td>${eur0(s.cur.v)} €</td><td class="${c}" style="font-weight:700">${sgn0(s.cambio)} €</td><td class="${c}" style="font-size:15px">${s.first.v>0?sgp(s.cambio,s.first.v):'<span class="muted">nuevo</span>'}</td><td class="${r==null?'':clsd(r)}" style="font-weight:700">${r==null?'<span class="muted" style="font-weight:500">—</span>':sgn0(r)+' €'}</td></tr>`; };
+  let det='';
+  if(sel){ const {p,s}=sel;
+    const movs=[...s.all].sort((a,b)=>b.f.localeCompare(a.f)).map(m=>`<tr><td class="l">${fmtF(m.f)}</td><td class="l">${vmName(m.t)}${m.n?'<span class="muted" style="display:block;font-size:13px">'+esc(m.n)+'</span>':''}</td><td>${eur(m.i)} €</td><td><button class="btn alt" style="min-height:40px;padding:0 14px" data-act="vfdel" data-id="${esc(m.id)}">Quitar</button></td></tr>`).join('');
+    det=card(`<div class="row c" style="justify-content:space-between;margin-bottom:12px"><div class="h2">${esc(p.n)}</div><button class="btn" data-act="vfnew" data-id="${esc(p.id)}">Anotar compra, venta o dividendo</button></div>
+      <div class="kpis">${kpi('Primer dato',eur0(s.first.v)+' €',fmtF(s.first.f))}${kpi(s.closed?'Último dato':'Ahora',eur0(s.cur.v)+' €',fmtF(s.cur.f))}${kpi('Cambio de valor',sgn0(s.cambio)+' €',s.first.v>0?sgp(s.cambio,s.first.v):'',clsd(s.cambio))}${s.hay?kpi('Resultado real',sgn0(s.resultado)+' €',s.resPct!=null?(s.resultado<0?'\u2212':'+')+pct1(s.resPct*100):'',clsd(s.resultado)):kpi('Resultado real','—','apunta lo que compraste o vendiste')}</div>
+      ${s.ganTotal!=null?`<p style="margin:12px 0 0">Contando lo que pagaste por lo que ya tenías (${eur0(s.coste)} €): <b class="${clsd(s.ganTotal)}">${sgn0(s.ganTotal)} €</b>${s.gtPct!=null?' ('+(s.ganTotal<0?'−':'+')+pct1(s.gtPct*100)+')':''}.</p>`:''}
+      <div class="tblwrap" style="margin-top:14px">${vfChart(s,pc)}</div>
+      <p class="muted" style="font-size:14px;margin:8px 0 14px">${s.pts.length} ${s.pts.length===1?'foto':'fotos'} con dato. Las rayas con C, V o D son tus compras, ventas y dividendos.</p>
+      ${movs?`<div class="tblwrap"><table class="t" style="min-width:420px"><thead><tr><th class="l">Fecha</th><th class="l">Qué</th><th>Importe</th><th></th></tr></thead><tbody>${movs}</tbody></table></div>`:'<p class="muted">Todavía no has apuntado compras, ventas ni dividendos de esta posición.</p>'}`);
+  }
+  const kg=gf?`${kpi('Primer dato',eur0(gf[k])+' €',fmtF(gf.f))}${kpi('Ahora',eur0(gl[k])+' €',fmtF(gl.f))}${kpi('Cambio de valor',sgn0(gl[k]-gf[k])+' €',sgp(gl[k]-gf[k],gf[k]),clsd(gl[k]-gf[k]))}`:'';
+  const main=patHead('valores','Cada acción y cada fondo, desde el primer dato que hay.')
+   +card(`<div class="chips">${chips}</div>`)
+   +(kg?`<div class="kpis">${kg}</div>`:'')
+   +card(`<div class="h2" style="margin-bottom:8px">${lbl}</div>${rowsAll.length?`<div class="tblwrap"><table class="t" style="min-width:640px"><thead><tr><th class="l">Posición</th><th>Primer dato</th><th>${rowsAll.some(x=>x.s.closed)?'Ahora o último':'Ahora'}</th><th>Cambio</th><th>%</th><th>Resultado real</th></tr></thead><tbody>${rowsAll.map(fila).join('')}</tbody></table></div>`:'<div class="empty">No hay posiciones en este grupo.</div>'}
+     <p class="muted" style="font-size:14px;margin-top:12px">Pulsa una fila para ver su gráfico y apuntar compras, ventas y dividendos.</p>
+     <p class="muted" style="font-size:14px;margin-top:6px"><b>Cambio</b> es lo que ha subido o bajado el valor, e incluye lo que hayas comprado o vendido. <b>Resultado real</b> sale cuando apuntas esas compras y ventas: lo que vale ahora, menos lo que valía en el primer dato, menos lo que has comprado desde entonces, más lo vendido y los dividendos.</p>`)
+   +det;
+  return shell('pat',main,'');
+}
+function vfDlg(pid){
+  const p=S.db.pos.find(x=>x.id===pid); if(!p) return; S.vfPos=pid;
+  openDlg(`<h2 class="h2">Anotar en ${esc(p.n)}</h2>
+  <div class="field"><label for="vm-t">Qué ha pasado</label><select id="vm-t" class="sel" style="font-weight:500">${VM_TIPOS.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div>
+  <div class="row"><div class="field grow1"><label for="vm-i">Importe (€)</label><input id="vm-i" class="inp" inputmode="decimal" autocomplete="off" placeholder="0,00"></div><div class="field grow1"><label for="vm-f">Fecha</label><input id="vm-f" class="inp" type="date" value="${todayISO()}"></div></div>
+  <div class="field"><label for="vm-n">Nota (opcional)</label><input id="vm-n" class="inp" style="font-weight:500" autocomplete="off" placeholder="Por ejemplo: 20 títulos"></div>
+  <p class="muted" style="font-size:14px;margin:0 0 8px">Compra: lo que pagaste. Venta: lo que cobraste. Dividendo: lo que te ingresaron. «Coste de lo que ya tenía» es lo que pagaste por lo que tenías antes del primer dato.</p>
+  <p class="note err" id="e-err" hidden></p>
+  <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="vf-save">Guardar</button></div>`);
+  setTimeout(()=>{ const a=$('#vm-i'); if(a) a.focus(); },60);
+}
+function vfGuardar(){
+  const t=$('#vm-t').value, f=$('#vm-f').value, a=parseNumber($('#vm-i').value), n=$('#vm-n').value.trim();
+  if(!parseDate(f)) return entryErr('Pon una fecha válida.'); if(a==null||a<=0) return entryErr('Pon un importe mayor que cero, por ejemplo 1500.');
+  const l=vmList(); l.push({id:uid(),p:S.vfPos,f:isoStr(parseDate(f)),t,i:round2(a),n});
+  if(!vmSave(l)) return; closeDlg(); render(); toast('Anotado');
+}
+
 const GROUPS=['Metálico','Acciones','Fondos'];
 function patView(arg){
   if(arg==='antes') return antesView();
   if(arg==='anios') return aniosView();
+  if(arg==='valores') return valoresView();
   const pc=patCalc(S.db);
   if(!pc.length) return shell('pat',`<header class="row c" style="justify-content:space-between"><h1 class="h1">Patrimonio</h1><a class="btn" href="#/foto">Nueva foto</a></header><div class="empty">Todavía no hay fotos. Pulsa Nueva foto para apuntar tus saldos de hoy.</div>`,'');
   const yrs=[...new Set(pc.map(p=>p.f.slice(0,4)))], yr=yrs.includes(String(S.year))?String(S.year):yrs[yrs.length-1], yp=pc.filter(p=>p.f.startsWith(yr)), last=yp[yp.length-1], base=yp[0], li=pc.indexOf(last), prev=li>0?pc[li-1]:null;
@@ -1435,7 +1518,7 @@ async function restoreBackup(file){
     (rows('Posiciones')||[]).forEach(r=>commit('savePos',{fila:[String(r[0]),String(r[1]),String(r[2]),String(r[3]),String(r[4]),Number(r[5])||0,String(r[6]||''),String(r[7]||'')]}));
     const F=rows('Fotos')||[], V=rows('FotosValores')||[];
     F.forEach(r=>{ const id=String(r[0]); commit('saveFoto',{foto:[id,iso(r[1]),String(r[2]).slice(0,7)],valores:V.filter(v=>String(v[0])===id).map(v=>[String(v[1]),Number(v[2])||0])}); });
-    (rows('Config')||[]).filter(r=>['vacaciones','vacaciones_ex'].includes(String(r[0]))).forEach(r=>commit('setCfg',{clave:String(r[0]),valor:String(r[1])}));
+    (rows('Config')||[]).filter(r=>['vacaciones','vacaciones_ex','valores_mov'].includes(String(r[0]))).forEach(r=>commit('setCfg',{clave:String(r[0]),valor:String(r[1])}));
     const L=(rows('Aprendizaje')||[]).map(r=>[String(r[0]),String(r[1]),String(r[2])]); if(L.length) commit('saveLearn',{items:L});
     render(); toast(`Copia cargada: ${filas.length} movimientos revisados.`);
   }catch(e){ toast('No se pudo cargar la copia: '+e.message); }
@@ -1548,6 +1631,11 @@ const ACT={
   cmpauto(){ S.cmp.upto=null; render(); },
   cmpyprev(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i>0){ S.cmp.year=c.years[i-1]; S.cmp.upto=null; render(); } },
   cmpynext(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i<c.years.length-1){ S.cmp.year=c.years[i+1]; S.cmp.upto=null; render(); } },
+  vftab(el){ S.vf.tab=el.dataset.t; S.vf.sel=null; render(); },
+  vfsel(el){ S.vf.sel=S.vf.sel===el.dataset.id?null:el.dataset.id; render(); },
+  vfnew(el){ vfDlg(el.dataset.id); }, 'vf-save'(){ vfGuardar(); },
+  vfdel(el){ el.textContent='¿Seguro? Pulsa otra vez'; el.dataset.act='vfdel2'; },
+  vfdel2(el){ vmSave(vmList().filter(m=>m.id!==el.dataset.id)); render(); toast('Anotación quitada'); },
   antesyear(el){ S.ant.year=+el.dataset.y; render(); },
   papct(){ S.pa.pct=!S.pa.pct; render(); },
   vacmarcar(){ vacMarcar(); },
