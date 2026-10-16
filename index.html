@@ -250,7 +250,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.4';
+const APP_VERSION='3.5';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -481,7 +481,7 @@ const S={
   sync:{state:'ok',msg:'',last:null,version:'',hoja:''},
   route:{name:'inicio',params:{}}, wiz:null, foto:null,
   year:new Date().getFullYear(), sort:'orden',
-  f:{q:'',cat:'',month:0,limit:80,vac:false}, gc:{concept:null,month:null,sel:null}, cmp:{year:null,upto:null}, ant:{year:null}, pa:{pct:false}, vf:{tab:'Acciones',sel:null}, tp:{concept:null,sel:null,extra:[]}
+  f:{q:'',cat:'',month:0,limit:80,vac:false}, gc:{concept:null,month:null,sel:null}, cmp:{a:null,b:null,upto:null}, ant:{year:null}, pa:{pct:false}, vf:{tab:'Acciones',sel:null}, tp:{concept:null,sel:null,extra:[]}
 };
 
 if(S.db&&!S.db.ingMov) S.db.ingMov=[];
@@ -701,10 +701,10 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
   </section>
 <section class="card gsec" id="g-comparar">
     <h2>Comparar años</h2>
-    <p>Compara un año con el anterior hasta el mes que ya tienes cargado, para que la comparación sea justa.</p>
+    <p>Compara dos años cualesquiera, por ejemplo 2024 con 2025 o 2024 con 2026, hasta el mes que ya tienes cargado en los dos, para que la comparación sea justa.</p>
     <ol class="pasos">
       <li>Abre <b>Comparar años</b>.</li>
-      <li>Elige el año con las flechas.</li>
+      <li>Pulsa un año en la fila <b>Año A</b> y otro en la fila <b>Año B</b>. Puedes elegir cualquier pareja.</li>
       <li>Si quieres, cambia el mes hasta el que se compara.</li>
     </ol>
     <a class="top" href="#/guia">↑ Volver al índice</a>
@@ -931,7 +931,7 @@ function inicioView(){
    <section><h2>Introducir datos</h2><div class="tiles two">${tileC('#/nuevo','plus','Nuevo mes','Extractos, saldos e ingresos de cualquier mes.',nmStatus,ms.pending?'warn':'ok')}${tileC(null,'plus','Apuntar un gasto','Efectivo, propinas, lo que no sale en el banco.','')}${tileC(null,'plus','Apuntar un ingreso','Metálico y otros ingresos sueltos.','','','addi')}</div></section>
    <section><h2>Consultar</h2><div class="tiles six">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto gastas en cada cosa: el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía','','big')}
    ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`,'','big')}
-   ${tile('#/comparar','bars','Comparar años','Este año frente al anterior, hasta el mismo mes.',cmpResumen(),'','big')}
+   ${tile('#/comparar','bars','Comparar años','Dos años cualesquiera, hasta el mismo mes.',cmpResumen(),'','big')}
    ${tile('#/vacaciones','sun','Gastos de vacaciones','Marca unas fechas y mira cuánto has gastado en ellas.',vacResumen(),'','big')}
    ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`,'','big')}
    ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía','','big')}
@@ -1282,24 +1282,29 @@ function anioView(){
 /* ================= comparar años ================= */
 function cmpState(){
   const years=[...new Set(S.db.movs.map(m=>+m.f.slice(0,4)))].sort((a,b)=>a-b);
-  const year=years.includes(S.cmp.year)?S.cmp.year:years[years.length-1];
-  const ag=aggYear(S.db.movs,year);
-  const auto=Math.max(1,lastMonthIdx(ag.tot)+1);
-  return {years,year,prev:year-1,auto,upto:S.cmp.upto||auto,ag};
+  const year=years.includes(S.cmp.a)?S.cmp.a:years[years.length-1];
+  let prev=years.includes(S.cmp.b)&&S.cmp.b!==year?S.cmp.b:null;
+  if(prev==null){ const o=years.filter(y=>y!==year); prev=years.includes(year-1)?year-1:(o.filter(y=>y<year).pop()||o[0]||null); }
+  const ag=aggYear(S.db.movs,year), agB=prev!=null?aggYear(S.db.movs,prev):null;
+  const auto=Math.max(1,(agB?Math.min(lastMonthIdx(ag.tot),lastMonthIdx(agB.tot)):lastMonthIdx(ag.tot))+1);
+  return {years,year,prev,auto,upto:S.cmp.upto||auto,ag,agB};
 }
 function cmpResumen(){
   if(!S.db.movs.length) return 'Sin gastos todavía';
-  const c=cmpState(); if(!c.years.includes(c.prev)) return `Sin datos de ${c.prev}`;
-  const B=aggYear(S.db.movs,c.prev), d=round2(sum(c.ag.tot.slice(0,c.auto))-sum(B.tot.slice(0,c.auto)));
+  const c=cmpState(); if(c.prev==null) return 'Hace falta más de un año';
+  const B=c.agB, d=round2(sum(c.ag.tot.slice(0,c.auto))-sum(B.tot.slice(0,c.auto)));
   return `${c.year} frente a ${c.prev} hasta ${mlow(c.auto-1)}: ${d>=0?'+':'\u2212'}${eur0(Math.abs(d))} €`;
 }
 function compararView(){
   if(!S.db.movs.length) return shell('comparar','<header><h1 class="h1">Comparar años</h1></header><div class="empty">Todavía no hay gastos.</div>','');
-  const c=cmpState(), n=c.upto, A=c.ag, B=aggYear(S.db.movs,c.prev), hasPrev=c.years.includes(c.prev);
+  const c=cmpState(), n=c.upto, A=c.ag, B=c.agB, hasPrev=c.prev!=null;
+  const ych=(w,sel)=>c.years.map(y=>`<button class="chip" data-act="cmpyear" data-w="${w}" data-y="${y}" aria-pressed="${y===sel}">${y}</button>`).join('');
   const head=(sub)=>`<header class="col" style="gap:16px"><div><h1 class="h1">Comparar años</h1><p class="sub">${sub}</p></div>
-   <div class="row c" style="justify-content:space-between;gap:12px 24px"><div class="row c">${stepper(`${c.year} frente a ${c.prev}`,190,'cmpyprev','cmpynext')}${stepper('Hasta '+mlow(n-1),170,'cmpprev','cmpnext')}</div>
-   <button class="chip" data-act="cmpauto" aria-pressed="${S.cmp.upto==null}">Hasta el último mes cargado</button></div></header>`;
-  if(!hasPrev) return shell('comparar',head(`No hay gastos de ${c.prev} para comparar.`)+`<div class="empty">Carga los gastos de ${c.prev} (por ejemplo con una copia en Excel) y aquí podrás compararlos.</div>`,'');
+   <div class="col" style="gap:10px"><div class="row c" style="gap:8px 10px"><strong style="min-width:64px">Año A</strong>${ych('a',c.year)}</div>
+   <div class="row c" style="gap:8px 10px"><strong style="min-width:64px">Año B</strong>${c.prev==null?'<span class="muted">No hay otro año cargado</span>':ych('b',c.prev)}</div></div>
+   <div class="row c" style="justify-content:space-between;gap:12px 24px">${stepper('Hasta '+mlow(n-1),170,'cmpprev','cmpnext')}
+   <button class="chip" data-act="cmpauto" aria-pressed="${S.cmp.upto==null}">Hasta el último mes cargado en los dos</button></div></header>`;
+  if(!hasPrev) return shell('comparar',head('Hace falta tener gastos de dos años distintos para comparar.')+`<div class="empty">Carga los gastos de otro año (por ejemplo con una copia en Excel) y aquí podrás compararlos.</div>`,'');
   const sumTo=a=>round2(sum(a.slice(0,n)));
   const totA=sumTo(A.tot), totB=sumTo(B.tot), diff=round2(totA-totB);
   const inc=y=>round2(sum(Array.from({length:n},(_,i)=>ingresoMes(S.db,ymStr(y,i+1)))));
@@ -1322,12 +1327,12 @@ function compararView(){
   }
   svg+='</svg>';
   const leyenda=`<div class="row c" style="gap:18px;font-size:15px;margin-bottom:6px"><span class="row c" style="gap:8px"><i style="display:inline-block;width:16px;height:16px;border-radius:4px;background:var(--accent-3)"></i>${c.prev}</span><span class="row c" style="gap:8px"><i style="display:inline-block;width:16px;height:16px;border-radius:4px;background:var(--accent)"></i>${c.year}</span></div>`;
-  const nota=n<12&&S.cmp.upto==null?`Los dos años se comparan de enero a ${mlow(n-1)}, el último mes cargado de ${c.year}.`:`Los dos años se comparan de enero a ${mlow(n-1)}.`;
+  const nota=(n<12&&S.cmp.upto==null?`Se comparan ${c.year} y ${c.prev} de enero a ${mlow(n-1)}, el último mes cargado en los dos.`:`Se comparan ${c.year} y ${c.prev} de enero a ${mlow(n-1)}.`);
   return shell('comparar',head(nota)
    +`<div class="kpis">${kpi(`Gastos ${c.year}`,eur(totA),`enero a ${mlow(n-1)}`)}${kpi(`Gastos ${c.prev}`,eur(totB),`enero a ${mlow(n-1)}`)}${kpi('Diferencia',sg(diff),totB?`${diff>0?'más':diff<0?'menos':'igual'} que en ${c.prev} (${pct1(pct)})`:'',cls(diff))}${kpi('Ahorro',sg(dAh).replace(/^\+/,'+'),`${c.year}: ${eur0(ahA)} € · ${c.prev}: ${eur0(ahB)} €`,dAh>0?'pos':dAh<0?'neg':'')}</div>`
    +`<div class="row" style="align-items:flex-start">${card(`<div class="h2" style="margin-bottom:8px">Mes a mes</div>${leyenda}${svg}`,'style="flex:2 1 520px;min-width:0"')}`
    +card(`<div class="h2" style="margin-bottom:8px">Detalle de cada mes</div><div class="tblwrap"><table class="t" style="min-width:380px"><thead><tr><th class="l">Mes</th><th>${c.prev}</th><th>${c.year}</th><th>Diferencia</th></tr></thead><tbody>${rm}</tbody><tfoot><tr><td class="l">Total</td><td>${eur(totB)}</td><td>${eur(totA)}</td><td class="${cls(diff)}">${sg(diff)}</td></tr></tfoot></table></div>`,'style="flex:1 1 380px;min-width:0"')+`</div>`
-   +card(`<div class="h2" style="margin-bottom:4px">Por concepto</div><p class="muted" style="font-size:14px;margin-bottom:8px">De mayor a menor cambio. En rojo, gastas más que el año anterior; en verde, menos.</p><div class="tblwrap"><table class="t" style="min-width:640px"><thead><tr><th class="l">Concepto</th><th>${c.prev}</th><th>${c.year}</th><th>Diferencia</th><th>%</th></tr></thead><tbody>${rc}</tbody><tfoot><tr><td class="l">Total</td><td>${eur(totB)}</td><td>${eur(totA)}</td><td class="${cls(diff)}">${sg(diff)}</td><td></td></tr></tfoot></table></div>`),'');
+   +card(`<div class="h2" style="margin-bottom:4px">Por concepto</div><p class="muted" style="font-size:14px;margin-bottom:8px">De mayor a menor cambio. En rojo, el año A gasta más que el B; en verde, menos.</p><div class="tblwrap"><table class="t" style="min-width:640px"><thead><tr><th class="l">Concepto</th><th>${c.prev}</th><th>${c.year}</th><th>Diferencia</th><th>%</th></tr></thead><tbody>${rc}</tbody><tfoot><tr><td class="l">Total</td><td>${eur(totB)}</td><td>${eur(totA)}</td><td class="${cls(diff)}">${sg(diff)}</td><td></td></tr></tfoot></table></div>`),'');
 }
 
 /* ================= movimientos ================= */
@@ -1903,11 +1908,12 @@ const ACT={
     ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
   patprev(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c>0){ S.year=+ys[c-1]; render(); } },
   patnext(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c<ys.length-1){ S.year=+ys[c+1]; render(); } },
-  cmpprev(){ const c=cmpState(); S.cmp.year=c.year; S.cmp.upto=Math.max(1,c.upto-1); render(); },
-  cmpnext(){ const c=cmpState(); S.cmp.year=c.year; S.cmp.upto=Math.min(12,c.upto+1); render(); },
+  cmpprev(){ const c=cmpState(); S.cmp.a=c.year; S.cmp.b=c.prev; S.cmp.upto=Math.max(1,c.upto-1); render(); },
+  cmpnext(){ const c=cmpState(); S.cmp.a=c.year; S.cmp.b=c.prev; S.cmp.upto=Math.min(12,c.upto+1); render(); },
   cmpauto(){ S.cmp.upto=null; render(); },
-  cmpyprev(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i>0){ S.cmp.year=c.years[i-1]; S.cmp.upto=null; render(); } },
-  cmpynext(){ const c=cmpState(), i=c.years.indexOf(c.year); if(i<c.years.length-1){ S.cmp.year=c.years[i+1]; S.cmp.upto=null; render(); } },
+  cmpyear(el){ const c=cmpState(), y=+el.dataset.y; let a=c.year, b=c.prev;
+    if(el.dataset.w==='a'){ if(y===b) b=a; a=y; } else { if(y===a) a=b; b=y; }
+    S.cmp.a=a; S.cmp.b=b; S.cmp.upto=null; render(); },
   vftab(el){ S.vf.tab=el.dataset.t; S.vf.sel=null; render(); },
   vfsel(el){ S.vf.sel=S.vf.sel===el.dataset.id?null:el.dataset.id; render(); },
   vfnew(el){ vfDlg(el.dataset.id); }, 'vf-save'(){ vfGuardar(); },
