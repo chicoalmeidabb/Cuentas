@@ -263,7 +263,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.8';
+const APP_VERSION='3.9';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -1974,30 +1974,41 @@ function capturaParse(tsv){
     W.push({t,x:+c[6],y:+c[7],w:+c[8],h:+c[9],cy:+c[7]+(+c[9])/2}); });
   const AMT=/^(\d{1,3}(?:[.\s]\d{3})*),(\d{2})(?![\d%])/;
   const out=[], seen=new Set();
-  W.forEach(a=>{ const m=a.t.match(AMT); if(!m||/%/.test(a.t)) return;
-    const v=Number(m[1].replace(/[.\s]/g,'')+'.'+m[2]); if(!isFinite(v)||v<=0) return;
+  W.forEach(a=>{ if(/%/.test(a.t)) return; let m=a.t.match(AMT), v=null;
+    if(m) v=Number(m[1].replace(/[.\s]/g,'')+'.'+m[2]);
+    else { // a veces el lector pierde la coma o la lee como punto: «1.14740€», «1.147.40€»
+      const y=a.t.match(/^([\d.]{3,})[€¢]/); if(y&&!/\.\./.test(y[1])){ const d=y[1].replace(/\./g,''); if(d.length>=3) v=Number(d.slice(0,-2)+'.'+d.slice(-2)); } }
+    if(v==null||!isFinite(v)||v<=0) return;
     const tol=Math.max(a.h,14)*0.7;
     let row=W.filter(b=>b!==a&&b.x+b.w<=a.x+4&&Math.abs(b.cy-a.cy)<=tol).sort((p,q)=>p.x-q.x).map(b=>b.t);
     if(row.some(t=>/^x$/i.test(t))) return;                     // «113 x 10,38 €»: precio por título
     while(row.length&&!/[A-Za-zÁÉÍÓÚÑáéíóúñ]{2}/.test(row[0])) row.shift(); // ruido de los iconos
+    while(row.length>1&&(row[0].replace(/[^A-Za-z]/g,'').length<=2||/^[a-z]{1,4}$/.test(row[0]))) row.shift();
     const nombre=row.join(' ').replace(/[|«»©@]+/g,' ').replace(/\s+/g,' ').trim(); if(!nombre||norm(nombre).length<2) return;
     const k=norm(nombre)+'|'+v; if(seen.has(k)) return; seen.add(k);
     out.push({nombre,v:round2(v),y:a.y});
   });
   return out.sort((p,q)=>p.y-q.y);
 }
+// dos palabras se parecen si son iguales, una empieza por la otra, una contiene a la otra o solo cambia una letra
+function capParecido(x,y){ if(x===y) return true; const m=Math.min(x.length,y.length);
+  if(m>=3&&(x.startsWith(y)||y.startsWith(x))) return true; if(m>=5&&(x.includes(y)||y.includes(x))) return true;
+  if(m<5||Math.abs(x.length-y.length)>1) return false; let i=0,j=0,e=0; while(i<x.length&&j<y.length){ if(x[i]===y[j]){ i++; j++; continue; } if(++e>1) return false; if(x.length>y.length) i++; else if(y.length>x.length) j++; else { i++; j++; } } return e+(x.length-i)+(y.length-j)<=1; }
 const capToks=s=>norm(s).split(' ').filter(w=>w.length>=3&&!CAP_STOP.has(w));
 function capturaEmparejar(nombre,posList,alias){
   const n=norm(nombre); if(alias[n]&&posList.some(p=>p.id===alias[n])) return alias[n];
   const a=capToks(nombre); if(!a.length) return '';
   let best='', bs=0, tie=false;
-  posList.forEach(p=>{ const b=capToks(p.n); let s=0; a.forEach(x=>{ if(b.some(y=>x===y||(Math.min(x.length,y.length)>=3&&(x.startsWith(y)||y.startsWith(x))))) s++; });
+  posList.forEach(p=>{ const b=capToks(p.n); let s=0; a.forEach(x=>{ if(b.some(y=>capParecido(x,y))) s++; });
     if(s>bs){ bs=s; best=p.id; tie=false; } else if(s&&s===bs) tie=true; });
   return bs&&!tie?best:'';
 }
 
 const capAlias=()=>{ try{ const x=JSON.parse((S.db.cfg&&S.db.cfg.alias_captura)||'{}'); return x&&typeof x==='object'&&!Array.isArray(x)?x:{}; }catch(e){ return {}; } };
 function capLib(){ return window.Tesseract?Promise.resolve():new Promise((ok,ko)=>{ const sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; sc.onload=ok; sc.onerror=()=>ko(new Error('No se pudo descargar el lector de capturas. Comprueba que hay internet.')); document.head.appendChild(sc); }); }
+// Amplía la imagen y la pasa a gris: el lector pierde menos comas
+async function capPrep(file){ try{ const bm=await createImageBitmap(file); const k=Math.max(1,Math.min(2,2400/bm.width)); const cv=document.createElement('canvas'); cv.width=Math.round(bm.width*k); cv.height=Math.round(bm.height*k);
+  const cx=cv.getContext('2d'); cx.filter='grayscale(1) contrast(1.25)'; cx.drawImage(bm,0,0,cv.width,cv.height); return cv; }catch(e){ return file; } }
 function capEspera(msg){ openDlg(`<h2 class="h2">Leyendo la captura</h2><p id="cap-msg">${esc(msg)}</p><div style="margin:14px 0">${bar(0,10).replace('class="meter" style="','class="meter" id="cap-bar" style="background:var(--line);')}</div><p class="muted" style="font-size:14px">La primera vez tarda más: tiene que descargar el lector. No cierres la app.</p>`); }
 function capProg(msg,pct){ const m=$('#cap-msg'); if(m&&msg) m.textContent=msg; const b=$('#cap-bar i'); if(b&&pct!=null) b.style.width=Math.max(1,Math.round(pct*100))+'%'; }
 async function capLeer(g,files){
@@ -2009,21 +2020,22 @@ async function capLeer(g,files){
     const leidos=[], vistos=new Set();
     for(; nf<files.length; nf++){
       capProg(files.length>1?`Leyendo la captura ${nf+1} de ${files.length}…`:'Leyendo la captura…',nf/files.length);
-      const r=await worker.recognize(files[nf],{},{tsv:true,text:true});
+      const r=await worker.recognize(await capPrep(files[nf]),{},{tsv:true,text:true});
       capturaParse(r.data.tsv).forEach(x=>{ const k=norm(x.nombre)+'|'+x.v; if(!vistos.has(k)){ vistos.add(k); leidos.push(x); } });
     }
     await worker.terminate(); worker=null;
     if(!leidos.length){ openDlg(`<h2 class="h2">No he encontrado importes</h2><p>En la captura no veo nombres con su importe en euros. Prueba con una captura en la que se vean el nombre y el valor de cada uno en la misma fila.</p><div class="acts"><span style="flex:1"></span><button class="btn" data-act="dclose">Vale</button></div>`); return; }
     const pos=lmPosiciones(ym).list.map(r=>r.p).filter(p=>p.g===g), al=capAlias(), usados=new Set();
     const rows=leidos.map(x=>{ const a=al[norm(x.nombre)]; let id=a==='-'?'':capturaEmparejar(x.nombre,pos,al); if(id&&usados.has(id)) id=''; if(id) usados.add(id); return {nombre:x.nombre,imp:num2(x.v),pos:id,toc:false}; });
+    pos.filter(p=>!usados.has(p.id)).forEach(p=>rows.push({nombre:p.n,imp:'',pos:p.id,toc:false,falta:true}));
     S.cap={g,ym,rows,pos}; capDlg();
   }catch(e){ if(worker) try{ await worker.terminate(); }catch(_){} openDlg(`<h2 class="h2">No he podido leer la captura</h2><p>${esc(e&&e.message||'Error desconocido')}</p><div class="acts"><span style="flex:1"></span><button class="btn" data-act="dclose">Vale</button></div>`); }
 }
 function capDlg(){
   const C=S.cap, opts=sel=>`<option value="">No usar</option>`+C.pos.map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}</option>`).join('');
-  const n=C.rows.filter(r=>r.pos).length;
+  const n=C.rows.filter(r=>r.pos&&!(r.falta&&!String(r.imp).trim())).length;
   openDlg(`<h2 class="h2">Lo que he leído</h2><p class="muted" style="font-size:15px;margin:0 0 6px">Revisa cada importe y elige a qué va. Lo que dejes en «No usar» no se guarda. La app recuerda tu elección para el mes que viene.</p>
-  <div>${C.rows.map((r,i)=>`<div class="caprow ${r.pos?'':'off'}"><b>${esc(r.nombre)}</b><input class="inp r" inputmode="decimal" autocomplete="off" data-chg="capimp" data-i="${i}" value="${esc(r.imp)}" aria-label="Importe de ${esc(r.nombre)}"><select class="sel" data-chg="capsel" data-i="${i}" aria-label="A qué va ${esc(r.nombre)}">${opts(r.pos)}</select></div>`).join('')}</div>
+  <div>${C.rows.map((r,i)=>`<div class="caprow ${r.pos?'':'off'}"><b>${esc(r.nombre)}${r.falta?' <span class="tag">No lo he leído: escríbelo o déjalo vacío</span>':''}</b><input class="inp r" inputmode="decimal" autocomplete="off" data-chg="capimp" data-i="${i}" value="${esc(r.imp)}" placeholder="${r.falta?'Importe':''}" aria-label="Importe de ${esc(r.nombre)}"><select class="sel" data-chg="capsel" data-i="${i}" aria-label="A qué va ${esc(r.nombre)}">${opts(r.pos)}</select></div>`).join('')}</div>
   <p class="note err" id="e-err" hidden></p>
   <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="cap-save">Guardar ${n}</button></div>`);
 }
@@ -2031,7 +2043,7 @@ function capGuardar(){
   const C=S.cap; if(!C) return; const pares=[], vistos={}, al=capAlias();
   for(const r of C.rows){
     if(r.toc) al[norm(r.nombre)]=r.pos||'-';
-    if(!r.pos) continue;
+    if(!r.pos||(r.falta&&!String(r.imp).trim())) continue;
     const v=parseNumber(r.imp); if(v==null) return entryErr(`El importe de «${r.nombre}» no es válido.`);
     const p=C.pos.find(x=>x.id===r.pos); if(vistos[r.pos]) return entryErr(`Has elegido «${p?p.n:r.pos}» dos veces.`); vistos[r.pos]=1;
     pares.push([r.pos,round2(v)]);
@@ -2143,7 +2155,7 @@ document.addEventListener('change',e=>{
   if(k==='wizfile'){ const f=el.files[0]; if(f) wizFile(el.dataset.cuenta,f); el.value=''; return; }
   if(k==='capfile'){ const fs=[...el.files]; el.value=''; if(fs.length) capLeer(el.dataset.g,fs); return; }
   if(k==='capsel'){ const r=S.cap.rows[+el.dataset.i]; r.pos=el.value; r.toc=true; capDlg(); return; }
-  if(k==='capimp'){ const r=S.cap.rows[+el.dataset.i], v=parseNumber(el.value); r.imp=v==null?el.value:num2(v); r.toc=r.toc||!!r.pos; return; }
+  if(k==='capimp'){ const r=S.cap.rows[+el.dataset.i], v=parseNumber(el.value); r.imp=el.value.trim()===''?'':v==null?el.value:num2(v); r.toc=r.toc||(!!r.pos&&!r.falta); capDlg(); return; }
   if(k==='restore'){ const f=el.files[0]; if(f) restoreBackup(f); el.value=''; return; }
   if(k==='wizq'){ S.wiz.userQ[el.dataset.id]=el.checked; wizRebuild(); render(); return; }
   if(k==='wizcat'){ S.wiz.userCat[el.dataset.id]=el.value; wizRebuild(); render(); return; }
