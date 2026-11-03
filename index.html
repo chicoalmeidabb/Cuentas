@@ -263,7 +263,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.10';
+const APP_VERSION='3.11';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -707,6 +707,7 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li>En cada cuenta, valor o fondo que falte, pulsa <b>Meter</b> y escribe el importe. Si no ha cambiado, pulsa <b>Sigue igual</b>.</li>
       <li>Para el extracto de cada cuenta pulsa <b>Cargar</b>: subes el Excel del mes con todo junto y la app separa los gastos de los ingresos. Para compras, ventas o dividendos, pulsa <b>Anotar</b>.</li>
       <li>Para no teclear los valores uno a uno, pulsa <b>Leer captura</b> en <b>Valores</b> o en <b>Fondos y depósitos</b> y elige la captura del banco. Revisa lo leído, elige a qué va cada línea la primera vez y pulsa <b>Guardar</b>. La app se acuerda para el mes siguiente.</li>
+      <li>Si una foto está repetida, ve a <b>Patrimonio</b>, pulsa la fecha de su columna y bórrala. Si cargaste un extracto equivocado, bórralo en <b>Datos y copias → Borrar un extracto</b>.</li>
       <li>Si una cuenta no ha tenido movimientos, pulsa <b>Sin movimientos</b> y mete solo su saldo en <b>Dinero en cuentas</b>.</li>
       <li>Si algo no toca ese mes, pulsa su círculo para marcarlo a mano. Si te equivocas, vuelve a pulsarlo.</li>
     </ol>
@@ -1596,7 +1597,7 @@ function patView(arg){
   // reparto
   const reparto=groups.filter(g=>last.active.some(p=>p.g===g)).map((g,i)=>{ const a=gt(last,g), share=last.total?a/last.total*100:0; return `<div class="col" style="gap:6px"><div class="row c" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(gName(g))}</b><b>${eur0(a)} €</b></div>${bar(share,12,['var(--accent)','var(--accent-2)','var(--accent-3)'][i%3])}<span class="muted" style="font-size:14px">${pct1(share)} del capital · ${last.active.filter(p=>p.g===g).length} posiciones</span></div>`; }).join('');
   // matriz
-  const heads=yp.map(p=>`<th>${dayShort(p.f)}<span style="display:block;font-size:12px;font-weight:500">cierra ${p.c?MSHORT[+p.c.slice(5,7)-1].toLowerCase():'?'}</span>${p.real<p.count?`<span style="display:block;font-size:12px;font-weight:700;color:var(--warn)">${p.real} de ${p.count}</span>`:''}</th>`).join('');
+  const heads=yp.map(p=>`<th><button class="linkbtn" data-act="fotodel" data-id="${esc(p.id)}" style="font:inherit;color:inherit;text-decoration:underline dotted;background:none;border:0;padding:0;cursor:pointer" title="Borrar esta foto">${dayShort(p.f)}</button><span style="display:block;font-size:12px;font-weight:500">cierra ${p.c?MSHORT[+p.c.slice(5,7)-1].toLowerCase():'?'}</span>${p.real<p.count?`<span style="display:block;font-size:12px;font-weight:700;color:var(--warn)">${p.real} de ${p.count}</span>`:''}</th>`).join('');
   const posInYear=S.db.pos.filter(p=>yp.some(ph=>ph.vals[p.id])).sort((a,b)=>a.o-b.o);
   const sticky='position:sticky;left:0;background:var(--surface);border-right:1px solid var(--line);';
   let body='';
@@ -1613,7 +1614,7 @@ function patView(arg){
    <div class="kpis">${kpi('Capital total',eur(last.total),last.active.length+' posiciones')}${dB!=null?kpi('Desde la foto de enero',sgn(dB),pct1(dB/base.total*100)+' respecto a '+eur0(base.total)+' €',dB>=0?'pos':'neg','<p class="muted" style="font-size:13px;margin-top:8px">Incluye lo que has metido o sacado.</p>'):''}${dP!=null?kpi('Desde la foto anterior',sgn(dP),dayShort(prev.f)+': '+eur0(prev.total)+' €',dP>=0?'pos':'neg'):''}</div>
    <div class="row" style="align-items:stretch">${card(`<div class="h2" style="margin-bottom:12px">Evolución del capital</div>${svg}<p class="muted" style="font-size:14px;margin-top:10px">Cada punto es el día en que tomaste los saldos. Línea discontinua: meses sin foto. Punto vacío: foto con pocas posiciones.</p>`,'style="flex:2 1 520px;min-width:0"')
    +card(`<div class="h2" style="margin-bottom:16px">Reparto</div><div class="col" style="gap:20px">${reparto}</div>`,'style="flex:1 1 300px;min-width:0"')}</div>
-   <section class="col" style="gap:12px"><div class="row c" style="justify-content:space-between"><div class="h2">Posiciones por foto</div><p class="muted" style="font-size:14px">Euros sin decimales. Cada columna es la foto tomada ese día y cierra el mes anterior. Casillas ámbar: sin valor.</p></div>
+   <section class="col" style="gap:12px"><div class="row c" style="justify-content:space-between"><div class="h2">Posiciones por foto</div><p class="muted" style="font-size:14px">Euros sin decimales. Cada columna es la foto tomada ese día y cierra el mes anterior. Casillas ámbar: sin valor. Para borrar una foto, pulsa su fecha.</p></div>
    <div class="card tblwrap" style="padding:0"><table class="t" style="min-width:${220+yp.length*100}px"><thead><tr><th class="l" style="${sticky}">Posición</th>${heads}<th style="border-left:1px solid var(--line)">Variación<span style="display:block;font-size:12px;font-weight:500">desde la primera</span></th></tr></thead><tbody>${body}</tbody></table></div></section>`;
   return shell('pat',main,'');
 }
@@ -1803,6 +1804,7 @@ function datosView(){
     ${pend?`<p class="note" style="margin-top:14px">${pend} cambios esperando a guardarse en tu hoja.</p><div class="row" style="margin-top:10px"><button class="btn alt sm" data-act="resync">Reintentar</button><button class="btn danger sm" data-act="dropoutbox">Descartar lo pendiente</button></div>`:''}`)}
   ${card(`<div class="h2">Instalar la app</div><p class="muted" style="margin-bottom:12px">Para abrir Cuentas desde un icono, a pantalla completa.</p><button class="btn" data-act="install" data-install ${window.__ip?'':'hidden'}>Instalar app</button><p class="muted" ${window.__ip?'hidden':''} style="font-size:14px">Si no aparece el botón, Chrome no ofrece instalarla ahora (ya está instalada o falta recargar la página).</p>`)}
   ${card(`<div class="h2">Copia de seguridad</div><p class="muted" style="margin-bottom:12px">Tus datos ya están en tu hoja de Drive. Además puedes bajarte una copia en Excel y guardarla donde quieras.</p><div class="row"><button class="btn" data-act="export">Descargar copia en Excel</button><label class="btn alt"><input type="file" class="sr" accept=".xlsx" data-chg="restore">Cargar una copia</label></div>`)}
+  ${card(`<div class="h2">Borrar un extracto</div><p class="muted" style="margin:6px 0 12px">Si cargaste un extracto equivocado, borra aquí todos sus gastos e ingresos de un mes. Lo apuntado a mano no se toca.</p><button class="btn alt" data-act="bexdlg">Borrar un extracto</button>`)}
   ${card(`<div class="h2">Conceptos</div><p class="muted" style="margin:6px 0 12px">${S.db.cats.length} conceptos de gasto. Cámbiales el nombre o añade nuevos.</p><a class="btn alt" href="#/conceptos">Gestionar conceptos</a>`)}
   ${card(`<div class="h2">Posiciones del patrimonio</div><p class="muted" style="margin-bottom:8px">Archivar una posición (por ejemplo, una cuenta cerrada) deja de contarla desde esa fecha, pero conserva su historia.</p>${pos}<div style="margin-top:14px"><button class="btn alt" data-act="posadd">Añadir posición</button></div>`)}
   ${card(`<div class="h2">Aprendizaje</div><p class="muted">${S.db.learn.filter(l=>l.tipo==='cat').length} conceptos y ${S.db.learn.filter(l=>l.tipo==='traspaso'&&l.val).length} traspasos recordados. La app los usa para clasificar sola el mes siguiente.</p>`)}`,'');
@@ -2028,8 +2030,11 @@ async function capLeer(g,files){
     }
     await worker.terminate(); worker=null;
     if(!leidos.length){ openDlg(`<h2 class="h2">No he encontrado importes</h2><p>En la captura no veo nombres con su importe en euros. Prueba con una captura en la que se vean el nombre y el valor de cada uno en la misma fila.</p><div class="acts"><span style="flex:1"></span><button class="btn" data-act="dclose">Vale</button></div>`); return; }
-    const pos=lmPosiciones(ym).list.map(r=>r.p).filter(p=>p.g===g), al=capAlias(), usados=new Set();
-    const rows=leidos.map(x=>{ const a=al[norm(x.nombre)]; let id=a==='-'?'':capturaEmparejar(x.nombre,pos,al); if(id&&usados.has(id)) id=''; if(id) usados.add(id); return {nombre:x.nombre,imp:num2(x.v),pos:id,toc:false}; });
+    const LP=lmPosiciones(ym).list.filter(r=>r.p.g===g), pos=LP.map(r=>r.p), al=capAlias(), usados=new Set();
+    const rows=leidos.map(x=>{ const a=al[norm(x.nombre)]; let id=a==='-'?'':capturaEmparejar(x.nombre,pos,al); if(id&&usados.has(id)) id=''; if(id) usados.add(id); return {nombre:x.nombre,imp:num2(x.v),v:x.v,pos:id,toc:false,ign:a==='-'}; });
+    // Si el nombre no se parece a ninguno, se busca la posición cuyo último importe esté a menos del 5 %
+    const cand=[]; rows.forEach((r,i)=>{ if(r.pos||r.ign) return; LP.forEach(L=>{ const ref=L.v!=null?L.v:(L.prev?L.prev.v:null); if(!ref||usados.has(L.p.id)) return; const d=Math.abs(r.v-ref)/Math.abs(ref); if(d<=0.05) cand.push({i,id:L.p.id,d}); }); });
+    cand.sort((a,b)=>a.d-b.d||b.i-a.i).forEach(c=>{ const r=rows[c.i]; if(r.pos||usados.has(c.id)) return; r.pos=c.id; r.porImp=true; r.toc=true; usados.add(c.id); });
     pos.filter(p=>!usados.has(p.id)).forEach(p=>rows.push({nombre:p.n,imp:'',pos:p.id,toc:false,falta:true}));
     S.cap={g,ym,rows,pos}; capDlg();
   }catch(e){ if(worker) try{ await worker.terminate(); }catch(_){} openDlg(`<h2 class="h2">No he podido leer la captura</h2><p>${esc(e&&e.message||'Error desconocido')}</p><div class="acts"><span style="flex:1"></span><button class="btn" data-act="dclose">Vale</button></div>`); }
@@ -2038,7 +2043,7 @@ function capDlg(){
   const C=S.cap, opts=sel=>`<option value="">No usar</option>`+C.pos.map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}</option>`).join('');
   const n=C.rows.filter(r=>r.pos&&!(r.falta&&!String(r.imp).trim())).length;
   openDlg(`<h2 class="h2">Lo que he leído</h2><p class="muted" style="font-size:15px;margin:0 0 6px">Revisa cada importe y elige a qué va. Lo que dejes en «No usar» no se guarda. La app recuerda tu elección para el mes que viene.</p>
-  <div>${C.rows.map((r,i)=>`<div class="caprow ${r.pos?'':'off'}"><b>${esc(r.nombre)}${r.falta?' <span class="tag">No lo he leído: escríbelo o déjalo vacío</span>':''}</b><input class="inp r" inputmode="decimal" autocomplete="off" data-chg="capimp" data-i="${i}" value="${esc(r.imp)}" placeholder="${r.falta?'Importe':''}" aria-label="Importe de ${esc(r.nombre)}"><select class="sel" data-chg="capsel" data-i="${i}" aria-label="A qué va ${esc(r.nombre)}">${opts(r.pos)}</select></div>`).join('')}</div>
+  <div>${C.rows.map((r,i)=>`<div class="caprow ${r.pos?'':'off'}"><b>${esc(r.nombre)}${r.porImp?' <span class="tag">Por el importe: revisa que es este</span>':''}${r.falta?' <span class="tag">No lo he leído: escríbelo o déjalo vacío</span>':''}</b><input class="inp r" inputmode="decimal" autocomplete="off" data-chg="capimp" data-i="${i}" value="${esc(r.imp)}" placeholder="${r.falta?'Importe':''}" aria-label="Importe de ${esc(r.nombre)}"><select class="sel" data-chg="capsel" data-i="${i}" aria-label="A qué va ${esc(r.nombre)}">${opts(r.pos)}</select></div>`).join('')}</div>
   <p class="note err" id="e-err" hidden></p>
   <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="cap-save">Guardar ${n}</button></div>`);
 }
@@ -2056,6 +2061,29 @@ function capGuardar(){
   const keys=Object.keys(al); if(keys.length>200) keys.slice(0,keys.length-200).forEach(k=>delete al[k]);
   if(C.rows.some(r=>r.toc)) commit('setCfg',{clave:'alias_captura',valor:JSON.stringify(al)});
   S.cap=null; closeDlg(); render(); toast(`Guardados ${pares.length} valores en la foto de ${mlow(+C.ym.slice(5,7)-1)}`);
+}
+
+/* ----- borrar una foto y borrar un extracto ----- */
+function fotoDelDlg(id){
+  const f=S.db.fotos.find(x=>x.id===id); if(!f) return; const n=S.db.fv.filter(x=>x.foto===id).length, c=fotoCierra(f);
+  openDlg(`<h2 class="h2">¿Borrar esta foto?</h2><p>Foto del <b>${fmtF(f.f)}</b>, que cierra <b>${esc(ymLabel(c).toLowerCase())}</b>, con ${n} ${n===1?'valor':'valores'}.</p><p class="muted" style="font-size:15px">Las demás fotos no cambian. Los valores que solo estaban en esta foto se pierden.</p>
+  <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn danger" data-act="fotodel2" data-id="${esc(id)}">Sí, borrar</button></div>`);
+}
+function bexLista(cu,ym){ return {g:S.db.movs.filter(m=>m.cu===cu&&m.f.startsWith(ym)&&m.o==='extracto'),i:S.db.ingMov.filter(m=>m.cu===cu&&m.f.startsWith(ym)&&m.o==='extracto')}; }
+function bexDlg(){
+  if(!S.bex) S.bex={cu:CUENTAS[0],ym:prevMonthYM(todayISO())};
+  const B=S.bex, cus=[...new Set([...CUENTAS,...S.db.movs.filter(m=>m.o==='extracto').map(m=>m.cu)])], L=bexLista(B.cu,B.ym), n=L.g.length+L.i.length;
+  const ms=[]; for(let k=0;k<24;k++){ const ym=addMonths(prevMonthYM(todayISO()),1-k); ms.push(`<option value="${ym}"${ym===B.ym?' selected':''}>${esc(ymLabel(ym))}</option>`); }
+  openDlg(`<h2 class="h2">Borrar un extracto</h2>
+  <div class="row"><div class="field grow1"><label for="bex-cu">Cuenta</label><select id="bex-cu" class="sel" data-chg="bexcu" style="font-weight:500">${cus.map(c=>`<option value="${esc(c)}"${c===B.cu?' selected':''}>${esc(cuName(c))}</option>`).join('')}</select></div>
+  <div class="field grow1"><label for="bex-ym">Mes</label><select id="bex-ym" class="sel" data-chg="bexym" style="font-weight:500">${ms.join('')}</select></div></div>
+  <p class="${n?'note':'muted'}" style="margin:6px 0 10px">${n?`Se borrarán <b>${L.g.length} ${L.g.length===1?'gasto':'gastos'}</b> (${eur(sum(L.g.map(m=>m.i)))}) y <b>${L.i.length} ${L.i.length===1?'ingreso':'ingresos'}</b> (${eur(sum(L.i.map(m=>m.i)))}) de ${esc(cuName(B.cu))} en ${esc(ymLabel(B.ym).toLowerCase())}.`:`No hay nada cargado de ${esc(cuName(B.cu))} en ${esc(ymLabel(B.ym).toLowerCase())}.`}</p>
+  ${n?`<p class="muted" style="font-size:14px">Se borran poco a poco: abajo verás «Guardando…» hasta que termine. Luego puedes cargar el extracto bueno en Nuevo mes.</p>`:''}
+  <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button>${n?`<button class="btn danger" data-act="bexdo">Borrar ${n}</button>`:''}</div>`);
+}
+function bexDo(){
+  const B=S.bex, L=bexLista(B.cu,B.ym); L.g.forEach(m=>commit('delMov',{id:m.id})); L.i.forEach(m=>commit('delIng',{id:m.id}));
+  closeDlg(); render(); toast(`Borrados ${L.g.length+L.i.length} movimientos de ${cuName(B.cu)}`);
 }
 function lmDlg(pid){
   const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===pid); if(!r) return; S.lmPos=pid;
@@ -2105,7 +2133,9 @@ const ACT={
     if(x.auto){ toast('Ya está metido'); return; } lmMarcar(ym,x.k,!x.man); render(); toast(x.man?'Desmarcado':'Marcado a mano'); },
   lmcargar(){ wizInit(listaYM()); go('nuevo/1'); },
   lmsin(el){ lmMarcar(listaYM(),el.dataset.k,true); render(); toast('Marcado: sin movimientos'); },
-  lmval(el){ lmDlg(el.dataset.id); }, 'cap-save'(){ capGuardar(); }, 'lm-save'(){ lmSaveDlg(); },
+  lmval(el){ lmDlg(el.dataset.id); },
+  fotodel(el){ fotoDelDlg(el.dataset.id); }, fotodel2(el){ commit('delFoto',{id:el.dataset.id}); closeDlg(); render(); toast('Foto borrada'); },
+  bexdlg(){ S.bex=null; bexDlg(); }, bexdo(){ bexDo(); }, 'cap-save'(){ capGuardar(); }, 'lm-save'(){ lmSaveDlg(); },
   lmigual(el){ const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===el.dataset.id); if(!r||!r.prev) return; lmGuardarValor(ym,r.p.id,r.prev.v); render(); toast('Guardado: sigue igual'); },
   install(){ const ip=window.__ip; if(!ip){ toast('Chrome no ofrece instalar ahora. Quita el acceso directo viejo y recarga la página.'); return; }
     ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
@@ -2156,6 +2186,8 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target.closest('[data-chg]'); if(!el) return; const k=el.dataset.chg;
   if(k==='wizfile'){ const f=el.files[0]; if(f) wizFile(el.dataset.cuenta,f); el.value=''; return; }
+  if(k==='bexcu'){ S.bex.cu=el.value; bexDlg(); return; }
+  if(k==='bexym'){ S.bex.ym=el.value; bexDlg(); return; }
   if(k==='capfile'){ const fs=[...el.files]; el.value=''; if(fs.length) capLeer(el.dataset.g,fs); return; }
   if(k==='capsel'){ const r=S.cap.rows[+el.dataset.i]; r.pos=el.value; r.toc=true; capDlg(); return; }
   if(k==='capimp'){ const r=S.cap.rows[+el.dataset.i], v=parseNumber(el.value); r.imp=el.value.trim()===''?'':v==null?el.value:num2(v); r.toc=r.toc||(!!r.pos&&!r.falta); capDlg(); return; }
