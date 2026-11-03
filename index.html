@@ -207,7 +207,7 @@ button.tile{font:inherit;cursor:pointer}
 .bank .br .inp{width:150px;flex:none}
 
 /* diálogo y avisos */
-dialog{border:0;border-radius:16px;padding:22px;width:min(100% - 24px,32rem);background:var(--surface);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+dialog{border:0;border-radius:16px;padding:22px;width:min(100% - 24px,32rem);max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;background:var(--surface);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.35)}
 .caprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 0;border-top:1px solid var(--line)}
 .caprow b{flex:1 1 100%;font-size:16px} .caprow .inp{width:150px} .caprow .sel{flex:1 1 160px;min-width:0}
 .caprow.off b{color:var(--muted)}
@@ -263,7 +263,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.9';
+const APP_VERSION='3.10';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -603,7 +603,9 @@ const icon=(n,s)=>`<svg class="ic${s==='s'?' s':''}" viewBox="0 0 24 24" aria-hi
 let toastT=null;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3200); }
 function openDlg(html){ const d=$('#dlg'); d.innerHTML=html; if(!d.open) d.showModal(); }
-function closeDlg(){ const d=$('#dlg'); if(d.open) d.close(); }
+function closeDlg(){ const d=$('#dlg'); if(d.open) d.close(); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); setTimeout(fixScroll,50); setTimeout(fixScroll,400); }
+// En Android, al escribir en un diálogo, el teclado puede desplazar la página entera y dejarla en blanco: se vuelve a poner en su sitio
+function fixScroll(){ try{ window.scrollTo(0,0); document.documentElement.scrollTop=0; document.body.scrollTop=0; const a=$('.app'); if(a){ a.scrollTop=0; a.scrollLeft=0; } const m=$('.main'); if(m){ m.scrollTop=0; } }catch(e){} }
 const kpi=(l,v,s,cls='',note='')=>`<div class="kpi"><div class="l">${l}</div><div class="v ${cls}">${v}</div><div class="s">${s}</div>${note}</div>`;
 const card=(inner,extra='')=>`<section class="card" ${extra}>${inner}</section>`;
 const stepper=(txt,w,prev,next)=>`<div class="stepper"><button class="sq" data-act="${prev}" aria-label="Anterior">${icon('back')}</button><strong style="min-width:${w}px">${txt}</strong><button class="sq" data-act="${next}" aria-label="Siguiente">${icon('chev')}</button></div>`;
@@ -905,6 +907,7 @@ function render(top){
   if(!S.db){ app.innerHTML=`<div class="center"><div class="setup"><p class="h1">Cuentas</p><p class="sub">${S.sync.state==='err'||S.sync.state==='warn'?esc(S.sync.txt||''):'Cargando tus datos…'}</p><div class="row"><button class="btn" data-act="retry">Reintentar</button><button class="btn alt" data-act="reconf">Cambiar conexión</button></div></div></div>`; return; }
   const fn=VIEWS[name]||VIEWS.inicio;
   app.innerHTML=fn(arg);
+  fixScroll();
   const sc=$('#scroll'); if(sc) sc.scrollTop=keep;
   if(name==='guia'&&sc){ const t=arg?document.getElementById('g-'+arg):null; if(t) t.scrollIntoView(); else sc.scrollTop=0; }
   setSync();
