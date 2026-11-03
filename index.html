@@ -208,6 +208,9 @@ button.tile{font:inherit;cursor:pointer}
 
 /* diálogo y avisos */
 dialog{border:0;border-radius:16px;padding:22px;width:min(100% - 24px,32rem);background:var(--surface);color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.caprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.caprow b{flex:1 1 100%;font-size:16px} .caprow .inp{width:150px} .caprow .sel{flex:1 1 160px;min-width:0}
+.caprow.off b{color:var(--muted)}
 dialog::backdrop{background:rgba(10,15,25,.5)}
 dialog h2{margin-bottom:14px}
 dialog .field{margin-bottom:12px}
@@ -260,7 +263,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.7';
+const APP_VERSION='3.8';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -701,6 +704,7 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li>Lo que ya está metido sale con el círculo en verde. Arriba ves cuántas cosas faltan.</li>
       <li>En cada cuenta, valor o fondo que falte, pulsa <b>Meter</b> y escribe el importe. Si no ha cambiado, pulsa <b>Sigue igual</b>.</li>
       <li>Para el extracto de cada cuenta pulsa <b>Cargar</b>: subes el Excel del mes con todo junto y la app separa los gastos de los ingresos. Para compras, ventas o dividendos, pulsa <b>Anotar</b>.</li>
+      <li>Para no teclear los valores uno a uno, pulsa <b>Leer captura</b> en <b>Valores</b> o en <b>Fondos y depósitos</b> y elige la captura del banco. Revisa lo leído, elige a qué va cada línea la primera vez y pulsa <b>Guardar</b>. La app se acuerda para el mes siguiente.</li>
       <li>Si una cuenta no ha tenido movimientos, pulsa <b>Sin movimientos</b> y mete solo su saldo en <b>Dinero en cuentas</b>.</li>
       <li>Si algo no toca ese mes, pulsa su círculo para marcarlo a mano. Si te equivocas, vuelve a pulsarlo.</li>
     </ol>
@@ -1918,17 +1922,19 @@ function lmFoto(ym){ return S.db.fotos.filter(f=>fotoCierra(f)===ym).sort((a,b)=
 function lmFecha(ym){ const t=todayISO(), nx=addMonths(ym,1); return ymOf(t)===nx?t:nx+'-01'; }
 function lmPosiciones(ym){
   const foto=lmFoto(ym), fecha=foto?foto.f:lmFecha(ym), vals={};
-  if(foto) S.db.fv.forEach(x=>{ if(x.foto===foto.id) vals[x.p]=x.v; });
-  const fotos=[...S.db.fotos].filter(f=>!foto||f.id!==foto.id).filter(f=>f.f<=fecha).sort((a,b)=>a.f.localeCompare(b.f)||a.id.localeCompare(b.id));
+  const delMes=S.db.fotos.filter(f=>fotoCierra(f)===ym).sort((a,b)=>a.f.localeCompare(b.f)||a.id.localeCompare(b.id)), idsMes=new Set(delMes.map(f=>f.id));
+  delMes.forEach(f=>S.db.fv.forEach(x=>{ if(x.foto===f.id) vals[x.p]=x.v; }));
+  const fotos=[...S.db.fotos].filter(f=>!idsMes.has(f.id)).filter(f=>f.f<=fecha).sort((a,b)=>a.f.localeCompare(b.f)||a.id.localeCompare(b.id));
   const act=S.db.pos.filter(p=>(!p.desde||p.desde<=fecha)&&(!p.hasta||fecha<=p.hasta)).sort((a,b)=>a.o-b.o);
   return {foto,fecha,list:act.map(p=>{ let prev=null; for(let j=fotos.length-1;j>=0&&!prev;j--){ const v=S.db.fv.find(x=>x.foto===fotos[j].id&&x.p===p.id); if(v) prev={v:v.v,f:fotos[j].f}; }
     return {p,v:vals[p.id]!==undefined?vals[p.id]:null,prev}; })};
 }
-function lmGuardarValor(ym,pid,v){
-  const P=lmPosiciones(ym);
-  if(P.foto){ const valores=S.db.fv.filter(x=>x.foto===P.foto.id&&x.p!==pid).map(x=>[x.p,x.v]); valores.push([pid,v]); commit('saveFoto',{foto:[P.foto.id,P.foto.f,ym],valores}); }
-  else commit('saveFoto',{foto:['f'+uid(),P.fecha,ym],valores:[[pid,v]]});
+function lmGuardarValores(ym,pares){
+  const P=lmPosiciones(ym), ids=new Set(pares.map(x=>x[0]));
+  if(P.foto){ const valores=S.db.fv.filter(x=>x.foto===P.foto.id&&!ids.has(x.p)).map(x=>[x.p,x.v]).concat(pares); commit('saveFoto',{foto:[P.foto.id,P.foto.f,ym],valores}); }
+  else commit('saveFoto',{foto:['f'+uid(),P.fecha,ym],valores:pares});
 }
+const lmGuardarValor=(ym,pid,v)=>lmGuardarValores(ym,[[pid,v]]);
 function lmItems(ym){
   const man=new Set(lmMarcas()[ym]||[]), mes=mlow(+ym.slice(5,7)-1), groups=[];
   const it=(k,nombre,auto,txt,acts)=>({k,nombre,auto,man:!auto&&man.has(k),done:auto||man.has(k),txt:auto?txt:man.has(k)?(k.startsWith('g:')?`Sin movimientos en ${mes}`:'Marcado a mano'):txt,acts});
@@ -1940,7 +1946,7 @@ function lmItems(ym){
     const txt=has?eur(r.v):r.prev?`Último: ${eur(r.prev.v)} (${fmtF(r.prev.f)})`:'Sin valor anterior';
     const acts=has?`<button class="btn alt sm" data-act="lmval" data-id="${esc(r.p.id)}">Cambiar</button>`:`<button class="btn sm" data-act="lmval" data-id="${esc(r.p.id)}">Meter</button>${r.prev?`<button class="btn alt sm" data-act="lmigual" data-id="${esc(r.p.id)}">Sigue igual</button>`:''}`;
     return it('p:'+r.p.id,r.p.n,has,txt,acts); };
-  GG.forEach(([g,t])=>{ const l=P.list.filter(r=>r.p.g===g); if(l.length) groups.push({t,items:l.map(posItem)}); });
+  GG.forEach(([g,t])=>{ const l=P.list.filter(r=>r.p.g===g); if(l.length) groups.push({t,g,items:l.map(posItem)}); });
   const otras=P.list.filter(r=>!GG.some(([g])=>g===r.p.g)); if(otras.length) groups.push({t:'Otras posiciones',items:otras.map(posItem)});
   const nvm=vmList().filter(m=>m.f.startsWith(ym)&&m.t!=='coste').length;
   groups.push({t:'Compras, ventas y dividendos',items:[it('vm','Anotaciones de valores y fondos',nvm>0,nvm>0?(nvm===1?'1 anotada':`${nvm} anotadas`):'Si no hubo ninguna, márcalo con el círculo',`<a class="btn alt sm" href="#/pat/valores">Anotar</a>`)]});
@@ -1954,10 +1960,87 @@ function lmTile(){
 function listaView(){
   const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos, mes=mlow(+ym.slice(5,7)-1);
   const row=x=>`<div class="chk ${x.done?'done':''}"><button class="bx" data-act="lmtog" data-k="${esc(x.k)}" aria-label="${x.done?'Hecho':'Marcar'}: ${esc(x.nombre)}"><i>${x.done?icon('check','s'):''}</i></button><span class="nm"><b>${esc(x.nombre)}</b><small>${x.txt}</small></span>${x.done&&!x.k.startsWith('p:')?'':`<span class="ac">${x.acts}</span>`}</div>`;
-  const grp=g=>card(`<div class="lmg"><div class="gh"><div class="h2">${g.t}</div><span class="muted" style="font-size:14px">${g.items.filter(x=>x.done).length} de ${g.items.length}</span></div>${g.items.map(row).join('')}</div>`);
+  const capBtn=g=>g.g?`<label class="btn alt sm">${icon('up','s')}Leer captura<input type="file" class="sr" accept="image/*" multiple data-chg="capfile" data-g="${esc(g.g)}"></label>`:'';
+  const grp=g=>card(`<div class="lmg"><div class="gh" style="align-items:center;flex-wrap:wrap"><div class="h2">${g.t}</div><span class="row c" style="gap:12px"><span class="muted" style="font-size:14px">${g.items.filter(x=>x.done).length} de ${g.items.length}</span>${capBtn(g)}</span></div>${g.items.map(row).join('')}</div>`);
   const head=`<header class="col" style="gap:14px"><div class="row c" style="justify-content:space-between;gap:10px 24px"><div><h1 class="h1">Lista del mes</h1><p class="sub">${f?`Te faltan <b style="color:var(--ink)">${f} de ${L.total}</b> para cerrar ${mes}`:`Todo metido para ${mes}`}</p></div>${stepper(ymLabel(ym),210,'lmprev','lmnext')}</div>${bar(L.total?L.hechos/L.total*100:0,12,f?'':'var(--ok)').replace('class="meter" style="','class="meter" style="background:var(--line);')}
     ${f?`<p class="muted" style="font-size:15px">Lo que ya está metido sale en verde. Pulsa <b>Meter</b> en lo que falte. Si algo no toca este mes, pulsa su círculo.</p>`:`<p class="note ok">Has metido todo lo de ${mes}.</p>`}</header>`;
   return shell('lista',head+L.groups.map(grp).join(''),'');
+}
+/* ----- leer capturas (Tesseract): nombre + importe en la misma fila ----- */
+const CAP_STOP=new Set(['fondo','fondos','fi','cl','clase','banco','sa','de','del','la','el','los','las','valores','valor','cuenta','fondos','acciones','accion']);
+function capturaParse(tsv){
+  const W=[];
+  String(tsv||'').split(/\r?\n/).forEach(l=>{ const c=l.split('\t'); if(c.length<12||c[0]!=='5') return; const t=c.slice(11).join(' ').trim(); if(!t) return;
+    W.push({t,x:+c[6],y:+c[7],w:+c[8],h:+c[9],cy:+c[7]+(+c[9])/2}); });
+  const AMT=/^(\d{1,3}(?:[.\s]\d{3})*),(\d{2})(?![\d%])/;
+  const out=[], seen=new Set();
+  W.forEach(a=>{ const m=a.t.match(AMT); if(!m||/%/.test(a.t)) return;
+    const v=Number(m[1].replace(/[.\s]/g,'')+'.'+m[2]); if(!isFinite(v)||v<=0) return;
+    const tol=Math.max(a.h,14)*0.7;
+    let row=W.filter(b=>b!==a&&b.x+b.w<=a.x+4&&Math.abs(b.cy-a.cy)<=tol).sort((p,q)=>p.x-q.x).map(b=>b.t);
+    if(row.some(t=>/^x$/i.test(t))) return;                     // «113 x 10,38 €»: precio por título
+    while(row.length&&!/[A-Za-zÁÉÍÓÚÑáéíóúñ]{2}/.test(row[0])) row.shift(); // ruido de los iconos
+    const nombre=row.join(' ').replace(/[|«»©@]+/g,' ').replace(/\s+/g,' ').trim(); if(!nombre||norm(nombre).length<2) return;
+    const k=norm(nombre)+'|'+v; if(seen.has(k)) return; seen.add(k);
+    out.push({nombre,v:round2(v),y:a.y});
+  });
+  return out.sort((p,q)=>p.y-q.y);
+}
+const capToks=s=>norm(s).split(' ').filter(w=>w.length>=3&&!CAP_STOP.has(w));
+function capturaEmparejar(nombre,posList,alias){
+  const n=norm(nombre); if(alias[n]&&posList.some(p=>p.id===alias[n])) return alias[n];
+  const a=capToks(nombre); if(!a.length) return '';
+  let best='', bs=0, tie=false;
+  posList.forEach(p=>{ const b=capToks(p.n); let s=0; a.forEach(x=>{ if(b.some(y=>x===y||(Math.min(x.length,y.length)>=3&&(x.startsWith(y)||y.startsWith(x))))) s++; });
+    if(s>bs){ bs=s; best=p.id; tie=false; } else if(s&&s===bs) tie=true; });
+  return bs&&!tie?best:'';
+}
+
+const capAlias=()=>{ try{ const x=JSON.parse((S.db.cfg&&S.db.cfg.alias_captura)||'{}'); return x&&typeof x==='object'&&!Array.isArray(x)?x:{}; }catch(e){ return {}; } };
+function capLib(){ return window.Tesseract?Promise.resolve():new Promise((ok,ko)=>{ const sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; sc.onload=ok; sc.onerror=()=>ko(new Error('No se pudo descargar el lector de capturas. Comprueba que hay internet.')); document.head.appendChild(sc); }); }
+function capEspera(msg){ openDlg(`<h2 class="h2">Leyendo la captura</h2><p id="cap-msg">${esc(msg)}</p><div style="margin:14px 0">${bar(0,10).replace('class="meter" style="','class="meter" id="cap-bar" style="background:var(--line);')}</div><p class="muted" style="font-size:14px">La primera vez tarda más: tiene que descargar el lector. No cierres la app.</p>`); }
+function capProg(msg,pct){ const m=$('#cap-msg'); if(m&&msg) m.textContent=msg; const b=$('#cap-bar i'); if(b&&pct!=null) b.style.width=Math.max(1,Math.round(pct*100))+'%'; }
+async function capLeer(g,files){
+  const ym=listaYM(); capEspera('Preparando el lector…');
+  let worker=null;
+  try{
+    await capLib(); let nf=0;
+    worker=await Tesseract.createWorker('eng',1,{logger:m=>{ if(m&&m.status==='recognizing text') capProg(null,(nf+(m.progress||0))/files.length); }});
+    const leidos=[], vistos=new Set();
+    for(; nf<files.length; nf++){
+      capProg(files.length>1?`Leyendo la captura ${nf+1} de ${files.length}…`:'Leyendo la captura…',nf/files.length);
+      const r=await worker.recognize(files[nf],{},{tsv:true,text:true});
+      capturaParse(r.data.tsv).forEach(x=>{ const k=norm(x.nombre)+'|'+x.v; if(!vistos.has(k)){ vistos.add(k); leidos.push(x); } });
+    }
+    await worker.terminate(); worker=null;
+    if(!leidos.length){ openDlg(`<h2 class="h2">No he encontrado importes</h2><p>En la captura no veo nombres con su importe en euros. Prueba con una captura en la que se vean el nombre y el valor de cada uno en la misma fila.</p><div class="acts"><span style="flex:1"></span><button class="btn" data-act="dclose">Vale</button></div>`); return; }
+    const pos=lmPosiciones(ym).list.map(r=>r.p).filter(p=>p.g===g), al=capAlias(), usados=new Set();
+    const rows=leidos.map(x=>{ const a=al[norm(x.nombre)]; let id=a==='-'?'':capturaEmparejar(x.nombre,pos,al); if(id&&usados.has(id)) id=''; if(id) usados.add(id); return {nombre:x.nombre,imp:num2(x.v),pos:id,toc:false}; });
+    S.cap={g,ym,rows,pos}; capDlg();
+  }catch(e){ if(worker) try{ await worker.terminate(); }catch(_){} openDlg(`<h2 class="h2">No he podido leer la captura</h2><p>${esc(e&&e.message||'Error desconocido')}</p><div class="acts"><span style="flex:1"></span><button class="btn" data-act="dclose">Vale</button></div>`); }
+}
+function capDlg(){
+  const C=S.cap, opts=sel=>`<option value="">No usar</option>`+C.pos.map(p=>`<option value="${esc(p.id)}"${p.id===sel?' selected':''}>${esc(p.n)}</option>`).join('');
+  const n=C.rows.filter(r=>r.pos).length;
+  openDlg(`<h2 class="h2">Lo que he leído</h2><p class="muted" style="font-size:15px;margin:0 0 6px">Revisa cada importe y elige a qué va. Lo que dejes en «No usar» no se guarda. La app recuerda tu elección para el mes que viene.</p>
+  <div>${C.rows.map((r,i)=>`<div class="caprow ${r.pos?'':'off'}"><b>${esc(r.nombre)}</b><input class="inp r" inputmode="decimal" autocomplete="off" data-chg="capimp" data-i="${i}" value="${esc(r.imp)}" aria-label="Importe de ${esc(r.nombre)}"><select class="sel" data-chg="capsel" data-i="${i}" aria-label="A qué va ${esc(r.nombre)}">${opts(r.pos)}</select></div>`).join('')}</div>
+  <p class="note err" id="e-err" hidden></p>
+  <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="cap-save">Guardar ${n}</button></div>`);
+}
+function capGuardar(){
+  const C=S.cap; if(!C) return; const pares=[], vistos={}, al=capAlias();
+  for(const r of C.rows){
+    if(r.toc) al[norm(r.nombre)]=r.pos||'-';
+    if(!r.pos) continue;
+    const v=parseNumber(r.imp); if(v==null) return entryErr(`El importe de «${r.nombre}» no es válido.`);
+    const p=C.pos.find(x=>x.id===r.pos); if(vistos[r.pos]) return entryErr(`Has elegido «${p?p.n:r.pos}» dos veces.`); vistos[r.pos]=1;
+    pares.push([r.pos,round2(v)]);
+  }
+  if(!pares.length) return entryErr('Elige al menos una posición.');
+  lmGuardarValores(C.ym,pares);
+  const keys=Object.keys(al); if(keys.length>200) keys.slice(0,keys.length-200).forEach(k=>delete al[k]);
+  if(C.rows.some(r=>r.toc)) commit('setCfg',{clave:'alias_captura',valor:JSON.stringify(al)});
+  S.cap=null; closeDlg(); render(); toast(`Guardados ${pares.length} valores en la foto de ${mlow(+C.ym.slice(5,7)-1)}`);
 }
 function lmDlg(pid){
   const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===pid); if(!r) return; S.lmPos=pid;
@@ -2007,7 +2090,7 @@ const ACT={
     if(x.auto){ toast('Ya está metido'); return; } lmMarcar(ym,x.k,!x.man); render(); toast(x.man?'Desmarcado':'Marcado a mano'); },
   lmcargar(){ wizInit(listaYM()); go('nuevo/1'); },
   lmsin(el){ lmMarcar(listaYM(),el.dataset.k,true); render(); toast('Marcado: sin movimientos'); },
-  lmval(el){ lmDlg(el.dataset.id); }, 'lm-save'(){ lmSaveDlg(); },
+  lmval(el){ lmDlg(el.dataset.id); }, 'cap-save'(){ capGuardar(); }, 'lm-save'(){ lmSaveDlg(); },
   lmigual(el){ const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===el.dataset.id); if(!r||!r.prev) return; lmGuardarValor(ym,r.p.id,r.prev.v); render(); toast('Guardado: sigue igual'); },
   install(){ const ip=window.__ip; if(!ip){ toast('Chrome no ofrece instalar ahora. Quita el acceso directo viejo y recarga la página.'); return; }
     ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
@@ -2036,7 +2119,7 @@ const ACT={
   vacex(el){ const rs=vacRangos(); rs.ex.add(el.dataset.id); vacGuardarEx(rs.ex); render(); toast('Quitado de vacaciones. Sigue en tus cuentas.'); },
   vacin(el){ const rs=vacRangos(); rs.ex.delete(el.dataset.id); vacGuardarEx(rs.ex); render(); toast('Vuelve a contar como vacaciones'); },
   fvac(){ S.f.vac=!S.f.vac; S.f.limit=80; render(); },
-  captura(){ toast('Leer capturas todavía no está disponible. Escribe los valores, o pásame la captura en el chat.'); },
+  captura(){ toast('Para leer capturas, ve a la Lista del mes y pulsa «Leer captura» en Valores o en Fondos.'); },
   connect(){ connect(); },
   retry(){ pull().then(()=>render(true)); },
   reconf(){ S.cfgDraft={url:S.cfg?S.cfg.url:''}; S.cfg=null; LS.del('cfg'); render(true); },
@@ -2058,6 +2141,9 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target.closest('[data-chg]'); if(!el) return; const k=el.dataset.chg;
   if(k==='wizfile'){ const f=el.files[0]; if(f) wizFile(el.dataset.cuenta,f); el.value=''; return; }
+  if(k==='capfile'){ const fs=[...el.files]; el.value=''; if(fs.length) capLeer(el.dataset.g,fs); return; }
+  if(k==='capsel'){ const r=S.cap.rows[+el.dataset.i]; r.pos=el.value; r.toc=true; capDlg(); return; }
+  if(k==='capimp'){ const r=S.cap.rows[+el.dataset.i], v=parseNumber(el.value); r.imp=v==null?el.value:num2(v); r.toc=r.toc||!!r.pos; return; }
   if(k==='restore'){ const f=el.files[0]; if(f) restoreBackup(f); el.value=''; return; }
   if(k==='wizq'){ S.wiz.userQ[el.dataset.id]=el.checked; wizRebuild(); render(); return; }
   if(k==='wizcat'){ S.wiz.userCat[el.dataset.id]=el.value; wizRebuild(); render(); return; }
