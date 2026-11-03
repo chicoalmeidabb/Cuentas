@@ -156,6 +156,16 @@ table.t{border-collapse:collapse;width:100%}
 .home section{display:flex;flex-direction:column}
 .home h2{margin:0 0 8px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
 .tiles{display:grid;gap:14px}
+.lmg{display:flex;flex-direction:column}
+.lmg .gh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
+.chk{display:flex;align-items:center;gap:10px 12px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.chk .bx{width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;background:none;border:0;padding:0;cursor:pointer}
+.chk .bx i{width:30px;height:30px;border-radius:50%;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;color:#fff}
+.chk.done .bx i{background:var(--ok);border-color:var(--ok)}
+.chk .nm{flex:1 1 170px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.chk .nm b{font-size:17px} .chk .nm small{font-size:14px;color:var(--muted)}
+.chk.done .nm b{color:var(--muted)}
+.chk .ac{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
 .tiles.two{grid-template-columns:1.5fr 1fr 1fr}
 .tiles.six{grid-template-columns:repeat(4,1fr)}
 .tile{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);text-align:left;text-decoration:none}
@@ -250,7 +260,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.5';
+const APP_VERSION='3.6';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -596,8 +606,8 @@ const bar=(w,h=12,c)=>`<div class="meter" style="height:${h}px"><i style="width:
 const catOpts=(sel,extra='')=>`${extra}`+S.db.cats.filter(c=>c.a).map(c=>`<option value="${esc(c.n)}"${c.n===sel?' selected':''}>${esc(c.n)}</option>`).join('');
 const catName=c=>c||'Sin categoría';
 
-const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear'],['guia','Guía','book']];
-const ROUTE_NAV={inicio:'inicio',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',tipos:'gasto',datos:'datos',guia:'guia'};
+const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['lista','Lista del mes','check'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear'],['guia','Guía','book']];
+const ROUTE_NAV={inicio:'inicio',lista:'lista',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',tipos:'gasto',datos:'datos',guia:'guia'};
 function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='home'?' homesync':''}" data-sync="${where||'side'}" data-go="datos">${icon(S.sync.ico||'check','s')}<span>${esc(S.sync.txt||'Todo guardado')}</span></button>`; }
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
@@ -614,18 +624,19 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li><a href="#/guia/gasto">Apuntar un gasto <small>3</small></a></li>
       <li><a href="#/guia/ingreso">Apuntar un ingreso <small>4</small></a></li>
       <li><a href="#/guia/nuevomes">Nuevo mes (extractos) <small>5</small></a></li>
-      <li><a href="#/guia/concepto">Gasto por concepto <small>6</small></a></li>
-      <li><a href="#/guia/anio">Todo el año <small>7</small></a></li>
-      <li><a href="#/guia/comparar">Comparar años <small>8</small></a></li>
-      <li><a href="#/guia/vacaciones">Gastos de vacaciones <small>9</small></a></li>
-      <li><a href="#/guia/movimientos">Movimientos <small>10</small></a></li>
-      <li><a href="#/guia/patrimonio">Patrimonio <small>11</small></a></li>
-      <li><a href="#/guia/valores">Valores y fondos <small>12</small></a></li>
-      <li><a href="#/guia/conceptos">Conceptos <small>13</small></a></li>
-      <li><a href="#/guia/datos">Datos y copias <small>14</small></a></li>
-      <li><a href="#/guia/instalar">Instalarla como app <small>15</small></a></li>
-      <li><a href="#/guia/fallos">Si algo falla <small>16</small></a></li>
-      <li><a href="#/guia/seguridad">Seguridad <small>17</small></a></li>
+      <li><a href="#/guia/lista">Lista del mes <small>6</small></a></li>
+      <li><a href="#/guia/concepto">Gasto por concepto <small>7</small></a></li>
+      <li><a href="#/guia/anio">Todo el año <small>8</small></a></li>
+      <li><a href="#/guia/comparar">Comparar años <small>9</small></a></li>
+      <li><a href="#/guia/vacaciones">Gastos de vacaciones <small>10</small></a></li>
+      <li><a href="#/guia/movimientos">Movimientos <small>11</small></a></li>
+      <li><a href="#/guia/patrimonio">Patrimonio <small>12</small></a></li>
+      <li><a href="#/guia/valores">Valores y fondos <small>13</small></a></li>
+      <li><a href="#/guia/conceptos">Conceptos <small>14</small></a></li>
+      <li><a href="#/guia/datos">Datos y copias <small>15</small></a></li>
+      <li><a href="#/guia/instalar">Instalarla como app <small>16</small></a></li>
+      <li><a href="#/guia/fallos">Si algo falla <small>17</small></a></li>
+      <li><a href="#/guia/seguridad">Seguridad <small>18</small></a></li>
     </ol></nav>
 <section class="card gsec" id="g-empezar">
     <h2>Para empezar</h2>
@@ -676,6 +687,19 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li><b>Paso 3:</b> cierra el mes. Puedes añadir otros ingresos que falten y los saldos.</li>
     </ol>
     <div class="aviso">La app todavía no lee PDF ni fotos de capturas. Si solo tienes PDF, pásamelo y lo convierto a Excel.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-lista">
+    <h2>Lista del mes</h2>
+    <p>Te dice qué te falta por meter del mes que cierras, para que no se te olvide nada.</p>
+    <ol class="pasos">
+      <li>Abre <b>Lista del mes</b>. Sale el mes anterior; con las flechas eliges otro.</li>
+      <li>Lo que ya está metido sale con el círculo en verde. Arriba ves cuántas cosas faltan.</li>
+      <li>En cada cuenta, valor o fondo que falte, pulsa <b>Meter</b> y escribe el importe. Si no ha cambiado, pulsa <b>Sigue igual</b>.</li>
+      <li>Para los gastos pulsa <b>Cargar</b>; para los ingresos, <b>Apuntar</b>; para compras, ventas o dividendos, <b>Anotar</b>.</li>
+      <li>Si algo no toca ese mes (una cuenta sin gastos, por ejemplo), pulsa su círculo para marcarlo a mano.</li>
+    </ol>
+    <div class="aviso">Los importes que metes aquí van a la foto del patrimonio que cierra ese mes. Si ya la habías hecho, se completa; no se crea otra.</div>
     <a class="top" href="#/guia">↑ Volver al índice</a>
   </section>
 <section class="card gsec" id="g-concepto">
@@ -928,7 +952,7 @@ function inicioView(){
   const d=new Date(); const dtxt=d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   return `<div class="home"><header class="hd"><img class="logo" src="icon-192.png" alt="Jal · Picos de Europa"><div class="ttl"><h1 class="h1">Cuentas</h1><p class="sub" style="margin-top:2px;font-size:16px">${esc(dtxt.charAt(0).toUpperCase()+dtxt.slice(1))} · <span class="ver" style="display:inline;margin:0;padding:0;font-size:inherit">Versión ${APP_VERSION}</span></p></div>
    <div class="acts">${syncBtn('home')}<button class="btn alt sm" data-act="install" data-install ${window.__ip?'':'hidden'}>${icon('up','s')}Instalar app</button><a class="btn alt sm" href="#/datos">${icon('gear','s')}Datos y copias</a></div></header>
-   <section><h2>Introducir datos</h2><div class="tiles two">${tileC('#/nuevo','plus','Nuevo mes','Extractos, saldos e ingresos de cualquier mes.',nmStatus,ms.pending?'warn':'ok')}${tileC(null,'plus','Apuntar un gasto','Efectivo, propinas, lo que no sale en el banco.','')}${tileC(null,'plus','Apuntar un ingreso','Metálico y otros ingresos sueltos.','','','addi')}</div></section>
+   <section><h2>Introducir datos</h2>${lmTile()}<div class="tiles two">${tileC('#/nuevo','plus','Nuevo mes','Extractos, saldos e ingresos de cualquier mes.',nmStatus,ms.pending?'warn':'ok')}${tileC(null,'plus','Apuntar un gasto','Efectivo, propinas, lo que no sale en el banco.','')}${tileC(null,'plus','Apuntar un ingreso','Metálico y otros ingresos sueltos.','','','addi')}</div></section>
    <section><h2>Consultar</h2><div class="tiles six">${tile('#/gasto/todos','conc','Gasto por concepto','Cuánto gastas en cada cosa: el año, un concepto o un mes.',tc?`Mayor: ${esc(tc[0])} ${eur0(tc[1])} €`:'Sin gastos todavía','','big')}
    ${tile('#/anio','grid','Todo el año','Ingresos, gastos y ahorro de cada mes.',`${y}: gastos ${eur0(G)} € · ahorro ${eur0(I-G)} €`,'','big')}
    ${tile('#/comparar','bars','Comparar años','Dos años cualesquiera, hasta el mismo mes.',cmpResumen(),'','big')}
@@ -936,7 +960,7 @@ function inicioView(){
    ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`,'','big')}
    ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía','','big')}
    ${tile('#/conceptos','tag','Conceptos','Cambia el nombre de los conceptos o añade nuevos.',`${S.db.cats.filter(x=>x.a).length} conceptos`,'','big')}
-   ${tile('#/guia','book','Guía','Qué hace cada pantalla y cómo se usa, paso a paso.','17 apartados','','big')}</div></section></div>`;
+   ${tile('#/guia','book','Guía','Qué hace cada pantalla y cómo se usa, paso a paso.','18 apartados','','big')}</div></section></div>`;
 }
 
 /* ================= nuevo mes ================= */
@@ -1876,7 +1900,76 @@ function openClose(id){ const p=S.db.pos.find(x=>x.id===id); const pc=patCalc(S.
 function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; let h=''; if(!reopen){ h=$('#p-h').value; if(!parseDate(h)) return entryErr('Pon una fecha válida.'); }
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
-const VIEWS={guia:guiaView,inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,tipos:tiposView,datos:datosView};
+
+/* ================= lista del mes ================= */
+// Qué falta por meter del mes que se cierra. Se marca solo lo que ya está; lo demás se puede marcar a mano (Config: lista_mes).
+const listaYM=()=>S.lm||prevMonthYM(todayISO());
+function lmMarcas(){ try{ const x=JSON.parse((S.db.cfg&&S.db.cfg.lista_mes)||'{}'); return x&&typeof x==='object'&&!Array.isArray(x)?x:{}; }catch(e){ return {}; } }
+function lmMarcar(ym,k,on){ const m=lmMarcas(), s=new Set(m[ym]||[]); if(on) s.add(k); else s.delete(k); if(s.size) m[ym]=[...s]; else delete m[ym];
+  const ks=Object.keys(m).sort(); while(ks.length>24) delete m[ks.shift()];
+  commit('setCfg',{clave:'lista_mes',valor:JSON.stringify(m)}); }
+const fotoCierra=f=>f.c||addMonths(ymOf(f.f),-1);
+function lmFoto(ym){ return S.db.fotos.filter(f=>fotoCierra(f)===ym).sort((a,b)=>a.f.localeCompare(b.f)||a.id.localeCompare(b.id)).pop()||null; }
+function lmFecha(ym){ const t=todayISO(), nx=addMonths(ym,1); return ymOf(t)===nx?t:nx+'-01'; }
+function lmPosiciones(ym){
+  const foto=lmFoto(ym), fecha=foto?foto.f:lmFecha(ym), vals={};
+  if(foto) S.db.fv.forEach(x=>{ if(x.foto===foto.id) vals[x.p]=x.v; });
+  const fotos=[...S.db.fotos].filter(f=>!foto||f.id!==foto.id).filter(f=>f.f<=fecha).sort((a,b)=>a.f.localeCompare(b.f)||a.id.localeCompare(b.id));
+  const act=S.db.pos.filter(p=>(!p.desde||p.desde<=fecha)&&(!p.hasta||fecha<=p.hasta)).sort((a,b)=>a.o-b.o);
+  return {foto,fecha,list:act.map(p=>{ let prev=null; for(let j=fotos.length-1;j>=0&&!prev;j--){ const v=S.db.fv.find(x=>x.foto===fotos[j].id&&x.p===p.id); if(v) prev={v:v.v,f:fotos[j].f}; }
+    return {p,v:vals[p.id]!==undefined?vals[p.id]:null,prev}; })};
+}
+function lmGuardarValor(ym,pid,v){
+  const P=lmPosiciones(ym);
+  if(P.foto){ const valores=S.db.fv.filter(x=>x.foto===P.foto.id&&x.p!==pid).map(x=>[x.p,x.v]); valores.push([pid,v]); commit('saveFoto',{foto:[P.foto.id,P.foto.f,ym],valores}); }
+  else commit('saveFoto',{foto:['f'+uid(),P.fecha,ym],valores:[[pid,v]]});
+}
+function lmItems(ym){
+  const man=new Set(lmMarcas()[ym]||[]), mes=mlow(+ym.slice(5,7)-1), groups=[];
+  const it=(k,nombre,auto,txt,acts)=>({k,nombre,auto,man:!auto&&man.has(k),done:auto||man.has(k),txt:auto?txt:man.has(k)?'Marcado a mano':txt,acts});
+  groups.push({t:'Gastos del banco',items:CUENTAS.map(c=>{ const n=S.db.movs.filter(m=>m.cu===c&&m.f.startsWith(ym)).length;
+    return it('g:'+c,c,n>0,n>0?(n===1?'1 gasto cargado':`${n} gastos cargados`):`Sin gastos de ${mes}`,n>0?'':`<button class="btn alt sm" data-act="lmcargar">Cargar</button>`); })});
+  const ing=ingresoMes(S.db,ym);
+  groups.push({t:'Ingresos',items:[it('ing','Ingresos del mes',ing>0,ing>0?`${eur(ing)} apuntados`:'Sin ingresos todavía',`<button class="btn alt sm" data-act="addi">Apuntar</button>`)]});
+  const P=lmPosiciones(ym), GG=[['Metálico','Dinero en cuentas'],['Acciones','Valores'],['Fondos','Fondos y depósitos']];
+  const posItem=r=>{ const has=r.v!=null;
+    const txt=has?eur(r.v):r.prev?`Último: ${eur(r.prev.v)} (${fmtF(r.prev.f)})`:'Sin valor anterior';
+    const acts=has?`<button class="btn alt sm" data-act="lmval" data-id="${esc(r.p.id)}">Cambiar</button>`:`<button class="btn sm" data-act="lmval" data-id="${esc(r.p.id)}">Meter</button>${r.prev?`<button class="btn alt sm" data-act="lmigual" data-id="${esc(r.p.id)}">Sigue igual</button>`:''}`;
+    return it('p:'+r.p.id,r.p.n,has,txt,acts); };
+  GG.forEach(([g,t])=>{ const l=P.list.filter(r=>r.p.g===g); if(l.length) groups.push({t,items:l.map(posItem)}); });
+  const otras=P.list.filter(r=>!GG.some(([g])=>g===r.p.g)); if(otras.length) groups.push({t:'Otras posiciones',items:otras.map(posItem)});
+  const nvm=vmList().filter(m=>m.f.startsWith(ym)&&m.t!=='coste').length;
+  groups.push({t:'Compras, ventas y dividendos',items:[it('vm','Anotaciones de valores y fondos',nvm>0,nvm>0?(nvm===1?'1 anotada':`${nvm} anotadas`):'Si no hubo ninguna, márcalo con el círculo',`<a class="btn alt sm" href="#/pat/valores">Anotar</a>`)]});
+  const all=groups.flatMap(g=>g.items);
+  return {groups,total:all.length,hechos:all.filter(x=>x.done).length,foto:P.foto};
+}
+function lmTile(){
+  const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos;
+  return `<div class="tiles" style="margin-bottom:14px">${tileC('#/lista','check','Lista de '+mlow(+ym.slice(5,7)-1),'Lo que te falta por meter: gastos, cuentas, valores y fondos.',f?`Faltan ${f} de ${L.total}`:'Todo metido',f?'warn':'ok')}</div>`;
+}
+function listaView(){
+  const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos, mes=mlow(+ym.slice(5,7)-1);
+  const row=x=>`<div class="chk ${x.done?'done':''}"><button class="bx" data-act="lmtog" data-k="${esc(x.k)}" aria-label="${x.done?'Hecho':'Marcar'}: ${esc(x.nombre)}"><i>${x.done?icon('check','s'):''}</i></button><span class="nm"><b>${esc(x.nombre)}</b><small>${x.txt}</small></span>${x.done&&!x.k.startsWith('p:')?'':`<span class="ac">${x.acts}</span>`}</div>`;
+  const grp=g=>card(`<div class="lmg"><div class="gh"><div class="h2">${g.t}</div><span class="muted" style="font-size:14px">${g.items.filter(x=>x.done).length} de ${g.items.length}</span></div>${g.items.map(row).join('')}</div>`);
+  const head=`<header class="col" style="gap:14px"><div class="row c" style="justify-content:space-between;gap:10px 24px"><div><h1 class="h1">Lista del mes</h1><p class="sub">${f?`Te faltan <b style="color:var(--ink)">${f} de ${L.total}</b> para cerrar ${mes}`:`Todo metido para ${mes}`}</p></div>${stepper(ymLabel(ym),210,'lmprev','lmnext')}</div>${bar(L.total?L.hechos/L.total*100:0,12,f?'':'var(--ok)').replace('class="meter" style="','class="meter" style="background:var(--line);')}
+    ${f?`<p class="muted" style="font-size:15px">Lo que ya está metido sale en verde. Pulsa <b>Meter</b> en lo que falte. Si algo no toca este mes, pulsa su círculo.</p>`:`<p class="note ok">Has metido todo lo de ${mes}.</p>`}</header>`;
+  return shell('lista',head+L.groups.map(grp).join(''),'');
+}
+function lmDlg(pid){
+  const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===pid); if(!r) return; S.lmPos=pid;
+  openDlg(`<h2 class="h2">${esc(r.p.n)}</h2><p class="muted" style="margin:0 0 12px">Lo que había a final de ${mlow(+ym.slice(5,7)-1)} de ${ym.slice(0,4)}</p>
+  <div class="field"><label for="lm-v">Importe (€)</label><input id="lm-v" class="inp r" inputmode="decimal" autocomplete="off" value="${r.v!=null?esc(num2(r.v)):''}" placeholder="${r.prev?esc(num2(r.prev.v)):'0,00'}"></div>
+  ${r.prev?`<p class="muted" style="font-size:14px;margin:8px 0">Antes: ${eur(r.prev.v)} (${fmtF(r.prev.f)})</p>`:''}
+  <p class="note err" id="e-err" hidden></p>
+  <div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="lm-save">Guardar</button></div>`);
+  setTimeout(()=>{ const a=$('#lm-v'); if(a) a.focus(); },60);
+}
+function lmSaveDlg(){
+  const v=parseNumber($('#lm-v').value); if(v==null) return entryErr('Escribe el importe, por ejemplo 1500,25.');
+  lmGuardarValor(listaYM(),S.lmPos,round2(v)); closeDlg(); render(); toast('Guardado en la foto de '+mlow(+listaYM().slice(5,7)-1));
+}
+
+const VIEWS={lista:listaView,guia:guiaView,inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,tipos:tiposView,datos:datosView};
 
 /* ================= eventos ================= */
 const ACT={
@@ -1904,6 +1997,13 @@ const ACT={
   pickmonth(el){ const keep=S.wiz; wizInit(el.dataset.ym); go('nuevo/1'); },
   wizsave(el){ wizSave(el.dataset.mode); },
   fotosave(){ fotoSave(); },
+  lmprev(){ S.lm=addMonths(listaYM(),-1); render(); },
+  lmnext(){ const n=addMonths(listaYM(),1); if(n<=prevMonthYM(todayISO())){ S.lm=n; render(); } else toast('Ese mes todavía no ha terminado'); },
+  lmtog(el){ const ym=listaYM(), x=lmItems(ym).groups.flatMap(g=>g.items).find(i=>i.k===el.dataset.k); if(!x) return;
+    if(x.auto){ toast('Ya está metido'); return; } lmMarcar(ym,x.k,!x.man); render(); toast(x.man?'Desmarcado':'Marcado a mano'); },
+  lmcargar(){ wizInit(listaYM()); go('nuevo/1'); },
+  lmval(el){ lmDlg(el.dataset.id); }, 'lm-save'(){ lmSaveDlg(); },
+  lmigual(el){ const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===el.dataset.id); if(!r||!r.prev) return; lmGuardarValor(ym,r.p.id,r.prev.v); render(); toast('Guardado: sigue igual'); },
   install(){ const ip=window.__ip; if(!ip){ toast('Chrome no ofrece instalar ahora. Quita el acceso directo viejo y recarga la página.'); return; }
     ip.prompt(); ip.userChoice.then(r=>{ window.__ip=null; render(); toast(r.outcome==='accepted'?'Instalando…':'Instalación cancelada'); }); },
   patprev(){ const ys=[...new Set(patCalc(S.db).map(p=>p.f.slice(0,4)))], i=ys.indexOf(String(S.year)), c=i<0?ys.length-1:i; if(c>0){ S.year=+ys[c-1]; render(); } },
@@ -1973,7 +2073,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{ if(e.target.dataset&&e.target.dataset.inp==='q'){ S.f.q=e.target.value; S.f.limit=80; $('#movlist').innerHTML=movListAny(); } });
 document.addEventListener('focusout',e=>{ if(e.target.id==='e-txt'){ sugerirTipo(); } if(e.target.id==='e-txt'&&!entryTouched){ const t=e.target.value.trim(); if(!t) return; const c=classify(t,makeCtx()); if(c.cat){ const sel=$('#e-cat'); if([...sel.options].some(o=>o.value===c.cat)) sel.value=c.cat; } } });
-document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('#dlg')&&e.target.tagName==='INPUT'){ e.preventDefault(); if($('#i-val')) saveIncome(); else if($('#n-amt')) saveIng(); else if($('#e-amt')) saveEntry(); else if($('#c-n')&&$('[data-act="cat-add-save"]')) saveCatAdd(); else if($('#c-n')) saveCatEdit(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('#dlg')&&e.target.tagName==='INPUT'){ e.preventDefault(); if($('#lm-v')) lmSaveDlg(); else if($('#i-val')) saveIncome(); else if($('#n-amt')) saveIng(); else if($('#e-amt')) saveEntry(); else if($('#c-n')&&$('[data-act="cat-add-save"]')) saveCatAdd(); else if($('#c-n')) saveCatEdit(); } });
 
 /* ================= arranque ================= */
 const dlgOpen=()=>{ const d=$('#dlg'); return d&&d.open; };
