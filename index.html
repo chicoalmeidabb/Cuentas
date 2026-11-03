@@ -263,7 +263,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.12';
+const APP_VERSION='3.13';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -1796,7 +1796,7 @@ function tiposGuardar(){
 /* ================= datos y copias ================= */
 function datosView(){
   const pend=S.outbox.length, url=S.cfg?S.cfg.url:'', short=url.length>58?url.slice(0,34)+'…'+url.slice(-18):url;
-  const pos=[...S.db.pos].sort((a,b)=>a.o-b.o).map(p=>`<div class="mv" style="cursor:default"><span class="t"><b>${esc(p.n)}</b> <span class="muted">· ${esc(p.b)} · ${esc(p.t||p.g)}${p.hasta?' · cerrada el '+dayShort(p.hasta):''}</span></span><button class="btn alt sm" data-act="${p.hasta?'posreopen':'posclose'}" data-id="${esc(p.id)}">${p.hasta?'Reactivar':'Archivar'}</button></div>`).join('');
+  const pos=[...S.db.pos].sort((a,b)=>a.o-b.o).map(p=>`<div class="mv" style="cursor:default;flex-wrap:wrap;gap:8px 16px"><span class="t" style="flex:1 1 220px;white-space:normal"><b>${esc(p.n)}</b> <span class="muted">· ${esc(p.b)} · ${esc(p.t||p.g)}${p.hasta?' · cerrada el '+dayShort(p.hasta):''}</span></span><span class="row" style="gap:8px;flex:none;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button class="btn alt sm" data-act="posren" data-id="${esc(p.id)}">Cambiar nombre</button><button class="btn alt sm" data-act="${p.hasta?'posreopen':'posclose'}" data-id="${esc(p.id)}">${p.hasta?'Reactivar':'Archivar'}</button></span></div>`).join('');
   return shell('datos',`<header><h1 class="h1">Datos y copias</h1></header>
   ${card(`<div class="h2">Conexión</div><p class="${S.sync.state==='err'?'neg':S.sync.state==='warn'?'warn':'pos'}" style="font-weight:600;margin:6px 0">${esc(S.sync.txt||'Todo guardado')}</p>
     <p class="muted" style="font-size:15px">Hoja: ${esc(S.sync.hoja||'tu hoja de Google')} · Dirección: ${esc(short)}<br>Versión de la app ${APP_VERSION}${S.sync.version?' · Versión del script '+esc(S.sync.version):''}${S.sync.last?' · Última sincronización: '+new Date(S.sync.last).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}):''}</p>
@@ -1911,6 +1911,12 @@ function savePosNew(){
 }
 function openClose(id){ const p=S.db.pos.find(x=>x.id===id); const pc=patCalc(S.db); const last=pc.length?pc[pc.length-1].f:todayISO(); S.posEdit=id;
   openDlg(`<h2 class="h2">Archivar ${esc(p.n)}</h2><p class="muted" style="margin-bottom:12px">Dejará de contar en las fotos posteriores a la fecha que elijas. Su historia se conserva.</p><div class="field"><label for="p-h">Último día que cuenta</label><input id="p-h" class="inp" type="date" value="${esc(last)}"></div><p class="note err" id="e-err" hidden></p><div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="pc-save">Archivar</button></div>`); }
+function openPosRen(id){ const p=S.db.pos.find(x=>x.id===id); if(!p) return; S.posEdit=id;
+  openDlg(`<h2 class="h2">Cambiar nombre</h2><div class="field"><label for="p-rn">Nombre</label><input id="p-rn" class="inp" style="font-weight:500" autocomplete="off" value="${esc(p.n)}"></div><p class="muted" style="font-size:14px;margin:0 0 8px">Solo cambia el nombre: sus importes de todos los meses se conservan.</p><p class="note err" id="e-err" hidden></p><div class="acts"><span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="pr-save">Guardar</button></div>`);
+  setTimeout(()=>{ const a=$('#p-rn'); if(a){ a.focus(); a.select(); } },60); }
+function savePosRen(){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; const n=$('#p-rn').value.trim(); if(!n) return entryErr('Escribe un nombre.');
+  if(S.db.pos.some(x=>x.id!==p.id&&x.n.toLowerCase()===n.toLowerCase())) return entryErr('Ya hay otra posición con ese nombre.');
+  commit('savePos',{fila:[p.id,n,p.b,p.g,p.t,p.o,p.desde,p.hasta]}); closeDlg(); render(); toast('Nombre cambiado'); }
 function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p) return; let h=''; if(!reopen){ h=$('#p-h').value; if(!parseDate(h)) return entryErr('Pon una fecha válida.'); }
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
@@ -2177,7 +2183,7 @@ const ACT={
   catnone(){ S.f={q:'',cat:'__none__',month:0,limit:80}; },
   'cat-del'(){ const a=$('.acts'); a.innerHTML='<span style="flex:1"></span><span style="margin-right:8px">¿Borrar este concepto?</span><button class="btn alt" data-act="dclose">No</button><button class="btn danger" data-act="cat-del-yes">Sí, borrar</button>'; },
   'cat-del-yes'(){ const c=S.db.cats.find(x=>x.k===S.catEdit); if(c){ commit('delCat',{clave:c.k,nombre:c.n}); } closeDlg(); render(); toast('Concepto borrado'); },
-  posadd(){ openPos(null); }, posclose(el){ openClose(el.dataset.id); }, posreopen(el){ S.posEdit=el.dataset.id; savePosClose(true); }
+  posadd(){ openPos(null); }, posren(el){ openPosRen(el.dataset.id); }, 'pr-save'(){ savePosRen(); }, posclose(el){ openClose(el.dataset.id); }, posreopen(el){ S.posEdit=el.dataset.id; savePosClose(true); }
 };
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g&&!e.target.closest('[data-act]')){ go(g.dataset.go); return; }
@@ -2211,7 +2217,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{ if(e.target.dataset&&e.target.dataset.inp==='q'){ S.f.q=e.target.value; S.f.limit=80; $('#movlist').innerHTML=movListAny(); } });
 document.addEventListener('focusout',e=>{ if(e.target.id==='e-txt'){ sugerirTipo(); } if(e.target.id==='e-txt'&&!entryTouched){ const t=e.target.value.trim(); if(!t) return; const c=classify(t,makeCtx()); if(c.cat){ const sel=$('#e-cat'); if([...sel.options].some(o=>o.value===c.cat)) sel.value=c.cat; } } });
-document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('#dlg')&&e.target.tagName==='INPUT'){ e.preventDefault(); if($('#lm-v')) lmSaveDlg(); else if($('#i-val')) saveIncome(); else if($('#n-amt')) saveIng(); else if($('#e-amt')) saveEntry(); else if($('#c-n')&&$('[data-act="cat-add-save"]')) saveCatAdd(); else if($('#c-n')) saveCatEdit(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.closest&&e.target.closest('#dlg')&&e.target.tagName==='INPUT'){ e.preventDefault(); if($('#lm-v')) lmSaveDlg(); else if($('#p-rn')) savePosRen(); else if($('#i-val')) saveIncome(); else if($('#n-amt')) saveIng(); else if($('#e-amt')) saveEntry(); else if($('#c-n')&&$('[data-act="cat-add-save"]')) saveCatAdd(); else if($('#c-n')) saveCatEdit(); } });
 
 /* ================= arranque ================= */
 const dlgOpen=()=>{ const d=$('#dlg'); return d&&d.open; };
