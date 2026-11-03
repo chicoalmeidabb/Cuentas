@@ -156,6 +156,9 @@ table.t{border-collapse:collapse;width:100%}
 .home section{display:flex;flex-direction:column}
 .home h2{margin:0 0 8px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
 .tiles{display:grid;gap:14px}
+.tiles.duo{grid-template-columns:1fr 1fr}
+.rmbar{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px 14px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;font:inherit;color:inherit}
+.rmbar b{font-weight:600} .rmbar .meter{height:10px;grid-column:1 / -1;grid-row:2}
 .lmg{display:flex;flex-direction:column}
 .lmg .gh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
 .chk{display:flex;align-items:center;gap:10px 12px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
@@ -232,7 +235,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
   .topbar .brand{margin:0;font-size:20px}
   .scroll{padding:20px 16px} .bar{padding:12px 16px}
   .home{padding:24px 16px} .h1{font-size:28px} .home .h1{font-size:34px}
-  .tiles.two,.tiles.six{grid-template-columns:1fr} .home .hd .ttl{text-align:center}
+  .tiles.two,.tiles.six,.tiles.duo{grid-template-columns:1fr} .home .hd .ttl{text-align:center}
   .mv .c{display:none}
 }
 @media (prefers-reduced-motion:reduce){.side,.toast{transition:none}}
@@ -263,7 +266,7 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.13';
+const APP_VERSION='3.14';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
@@ -614,8 +617,8 @@ const bar=(w,h=12,c)=>`<div class="meter" style="height:${h}px"><i style="width:
 const catOpts=(sel,extra='')=>`${extra}`+S.db.cats.filter(c=>c.a).map(c=>`<option value="${esc(c.n)}"${c.n===sel?' selected':''}>${esc(c.n)}</option>`).join('');
 const catName=c=>c||'Sin categoría';
 
-const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['lista','Lista del mes','check'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear'],['guia','Guía','book']];
-const ROUTE_NAV={inicio:'inicio',lista:'lista',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',tipos:'gasto',datos:'datos',guia:'guia'};
+const NAV=[['inicio','Inicio','home'],['nuevo','Nuevo mes','plus'],['lista','Lista del mes','check'],['resumen','Resumen del mes','bars'],['gasto','Gasto por concepto','conc'],['anio','Todo el año','grid'],['comparar','Comparar años','bars'],['vacaciones','Gastos de vacaciones','sun'],['movs','Movimientos','list'],['pat','Patrimonio','trend'],['conceptos','Conceptos','tag'],['datos','Datos y copias','gear'],['guia','Guía','book']];
+const ROUTE_NAV={inicio:'inicio',lista:'lista',resumen:'resumen',nuevo:'nuevo',mes:'nuevo',gasto:'gasto',anio:'anio',comparar:'comparar',vacaciones:'vacaciones',movs:'movs',pat:'pat',foto:'pat',conceptos:'conceptos',tipos:'gasto',datos:'datos',guia:'guia'};
 function syncBtn(where){ return `<button class="${S.sync.cls||'sync'}${where==='home'?' homesync':''}" data-sync="${where||'side'}" data-go="datos">${icon(S.sync.ico||'check','s')}<span>${esc(S.sync.txt||'Todo guardado')}</span></button>`; }
 function shell(view,main,actions){
   const act=ROUTE_NAV[view]||view;
@@ -633,18 +636,19 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li><a href="#/guia/ingreso">Apuntar un ingreso <small>4</small></a></li>
       <li><a href="#/guia/nuevomes">Nuevo mes (extractos) <small>5</small></a></li>
       <li><a href="#/guia/lista">Lista del mes <small>6</small></a></li>
-      <li><a href="#/guia/concepto">Gasto por concepto <small>7</small></a></li>
-      <li><a href="#/guia/anio">Todo el año <small>8</small></a></li>
-      <li><a href="#/guia/comparar">Comparar años <small>9</small></a></li>
-      <li><a href="#/guia/vacaciones">Gastos de vacaciones <small>10</small></a></li>
-      <li><a href="#/guia/movimientos">Movimientos <small>11</small></a></li>
-      <li><a href="#/guia/patrimonio">Patrimonio <small>12</small></a></li>
-      <li><a href="#/guia/valores">Valores y fondos <small>13</small></a></li>
-      <li><a href="#/guia/conceptos">Conceptos <small>14</small></a></li>
-      <li><a href="#/guia/datos">Datos y copias <small>15</small></a></li>
-      <li><a href="#/guia/instalar">Instalarla como app <small>16</small></a></li>
-      <li><a href="#/guia/fallos">Si algo falla <small>17</small></a></li>
-      <li><a href="#/guia/seguridad">Seguridad <small>18</small></a></li>
+      <li><a href="#/guia/resumen">Resumen del mes <small>7</small></a></li>
+      <li><a href="#/guia/concepto">Gasto por concepto <small>8</small></a></li>
+      <li><a href="#/guia/anio">Todo el año <small>9</small></a></li>
+      <li><a href="#/guia/comparar">Comparar años <small>10</small></a></li>
+      <li><a href="#/guia/vacaciones">Gastos de vacaciones <small>11</small></a></li>
+      <li><a href="#/guia/movimientos">Movimientos <small>12</small></a></li>
+      <li><a href="#/guia/patrimonio">Patrimonio <small>13</small></a></li>
+      <li><a href="#/guia/valores">Valores y fondos <small>14</small></a></li>
+      <li><a href="#/guia/conceptos">Conceptos <small>15</small></a></li>
+      <li><a href="#/guia/datos">Datos y copias <small>16</small></a></li>
+      <li><a href="#/guia/instalar">Instalarla como app <small>17</small></a></li>
+      <li><a href="#/guia/fallos">Si algo falla <small>18</small></a></li>
+      <li><a href="#/guia/seguridad">Seguridad <small>19</small></a></li>
     </ol></nav>
 <section class="card gsec" id="g-empezar">
     <h2>Para empezar</h2>
@@ -712,6 +716,19 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li>Si algo no toca ese mes, pulsa su círculo para marcarlo a mano. Si te equivocas, vuelve a pulsarlo.</li>
     </ol>
     <div class="aviso">Los importes que metes aquí van a la foto del patrimonio que cierra ese mes. Si ya la habías hecho, se completa; no se crea otra.</div>
+    <a class="top" href="#/guia">↑ Volver al índice</a>
+  </section>
+<section class="card gsec" id="g-resumen">
+    <h2>Resumen del mes</h2>
+    <p>Elige un mes y ves cuánto entró, cuánto salió y cuánto ahorraste.</p>
+    <ol class="pasos">
+      <li>Abre <b>Resumen del mes</b>. Sale el último mes terminado; con las flechas eliges otro.</li>
+      <li>Arriba: <b>Ingresos</b>, <b>Gastos</b> y <b>Ahorro</b> (y qué parte de lo que entró has ahorrado).</li>
+      <li>Debajo, la comparación con el mes anterior y con el mismo mes del año pasado.</li>
+      <li><b>En qué se fue el dinero</b>: los conceptos de mayor a menor. Pulsa uno para ver sus gastos.</li>
+      <li><b>Patrimonio</b>: lo que tenías a final de mes y cuánto ha cambiado.</li>
+    </ol>
+    <div class="aviso">Los traspasos entre tus cuentas no cuentan como gasto. Si un mes sale vacío, es que falta guardar sus extractos en Nuevo mes.</div>
     <a class="top" href="#/guia">↑ Volver al índice</a>
   </section>
 <section class="card gsec" id="g-concepto">
@@ -973,7 +990,7 @@ function inicioView(){
    ${tile('#/movs','list','Movimientos','Busca, corrige o borra cualquier gasto.',`${S.db.movs.length} movimientos`,'','big')}
    ${tile('#/pat','trend','Patrimonio','Saldos, acciones y fondos, y cómo evolucionan.',lastP?`${eur0(lastP.total)} € · foto del ${dayShort(lastP.f)}`:'Sin fotos todavía','','big')}
    ${tile('#/conceptos','tag','Conceptos','Cambia el nombre de los conceptos o añade nuevos.',`${S.db.cats.filter(x=>x.a).length} conceptos`,'','big')}
-   ${tile('#/guia','book','Guía','Qué hace cada pantalla y cómo se usa, paso a paso.','18 apartados','','big')}</div></section></div>`;
+   ${tile('#/guia','book','Guía','Qué hace cada pantalla y cómo se usa, paso a paso.','19 apartados','','big')}</div></section></div>`;
 }
 
 /* ================= nuevo mes ================= */
@@ -1921,6 +1938,43 @@ function savePosClose(reopen){ const p=S.db.pos.find(x=>x.id===S.posEdit); if(!p
   commit('savePos',{fila:[p.id,p.n,p.b,p.g,p.t,p.o,p.desde,h]}); closeDlg(); render(); toast(reopen?'Posición reactivada':'Posición archivada'); }
 
 
+
+/* ================= resumen del mes ================= */
+const resumenYM=()=>S.rm||prevMonthYM(todayISO());
+function rmDatos(ym){
+  const movs=S.db.movs.filter(m=>m.f.startsWith(ym)), G=round2(sum(movs.map(m=>m.i))), I=ingresoMes(S.db,ym), A=round2(I-G);
+  return {ym,movs,G,I,A,pct:I>0?A/I*100:null};
+}
+function rmPat(ym){ const pc=patCalc(S.db); let a=null,b=null; pc.forEach(p=>{ const c=fotoCierra(p); if(c===ym) a=p; if(c===addMonths(ym,-1)) b=p; }); return {a,b}; }
+function resumenView(){
+  const ym=resumenYM(), R=rmDatos(ym), mes=MONTHS[+ym.slice(5,7)-1], y=ym.slice(0,4), P=rmDatos(addMonths(ym,-1)), Y1=rmDatos(addMonths(ym,-12));
+  const pMes=MONTHS[+addMonths(ym,-1).slice(5,7)-1].toLowerCase();
+  const cmp=(lab,o,k,inv)=>{ if(!(o.I||o.G)) return `<li class="muted">${lab}: sin datos</li>`; const d=round2(R[k]-o[k]); if(!d) return `<li>${lab}: igual (${eur(o[k])})</li>`;
+    const good=inv?d<0:d>0; return `<li>${lab}: <b class="${good?'pos':'neg'}">${d>0?'+':'−'}${eur(Math.abs(d))}</b> <span class="muted">(${eur(o[k])})</span></li>`; };
+  const vacio=!(R.I||R.G);
+  // gastos por concepto
+  const by=new Map(); R.movs.forEach(m=>by.set(m.c||'',round2((by.get(m.c||'')||0)+m.i)));
+  const cats=[...by.entries()].filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]), mx=cats.length?cats[0][1]:1;
+  const gastosHTML=cats.length?cats.map(([c,v])=>`<button class="rmbar" data-act="rmcat" data-c="${esc(c)}"><b style="${c?'':'color:var(--bad)'}">${esc(catName(c))}</b>${bar(v/mx*100,12)}<b>${eur(v)} <span class="muted" style="font-weight:400;font-size:14px">${pct1(R.G?v/R.G*100:0)}</span></b></button>`).join(''):`<p class="muted">No hay gastos guardados de ${mes.toLowerCase()}. Carga los extractos en Nuevo mes.</p>`;
+  // ingresos por tipo
+  const it=new Map(); S.db.ingMov.filter(x=>x.f.startsWith(ym)).forEach(x=>it.set(x.t||'Otros',round2((it.get(x.t||'Otros')||0)+x.i)));
+  if(S.db.ingresos[ym]) it.set('Total apuntado a mano',round2((it.get('Total apuntado a mano')||0)+S.db.ingresos[ym]));
+  const ings=[...it.entries()].sort((a,b)=>b[1]-a[1]);
+  const ingHTML=ings.length?ings.map(([t,v])=>`<button class="rmbar" data-act="rming"><b>${esc(t)}</b>${bar(v/ings[0][1]*100,12,'var(--muted)')}<b>${eur(v)}</b></button>`).join(''):`<p class="muted">No hay ingresos guardados de ${mes.toLowerCase()}.</p>`;
+  // patrimonio
+  const PT=rmPat(ym), dPat=PT.a&&PT.b?round2(PT.a.total-PT.b.total):null;
+  const patHTML=PT.a?`<div class="row" style="gap:20px 40px">${kpi('A final de '+mes.toLowerCase(),eur(PT.a.total),PT.a.real+' de '+PT.a.count+' posiciones con dato')}${dPat!=null?kpi('Cambio en el mes',sgn(dPat),'desde final de '+pMes,dPat>=0?'pos':'neg','<p class="muted" style="font-size:13px;margin-top:8px">Incluye lo que has metido o sacado y lo que han subido o bajado valores y fondos.</p>'):''}</div>`:`<p class="muted">Todavía no hay saldos de final de ${mes.toLowerCase()}. Mételos en la Lista del mes.</p>`;
+  const head=`<header class="row c" style="justify-content:space-between;gap:10px 24px"><div><h1 class="h1">Resumen del mes</h1><p class="sub">Ingresos, gastos y ahorro de ${mes.toLowerCase()} de ${y}.</p></div>${stepper(ymLabel(ym),210,'rmprev','rmnext')}</header>`;
+  const kp=`<div class="kpis">${kpi('Ingresos',eur(R.I),'')}${kpi('Gastos',eur(R.G),(R.movs.length===1?'1 gasto':R.movs.length+' gastos')+' · sin traspasos')}${kpi('Ahorro',eur(R.A),R.pct!=null?pct1(Math.abs(R.pct))+(R.A>=0?' de lo que entró':' más de lo que entró'):'',R.A>=0?'pos':'neg')}</div>`;
+  const cmpHTML=card(`<div class="h2" style="margin-bottom:10px">Comparado con otros meses</div><div class="row" style="gap:16px 48px;align-items:flex-start">
+    <div><b>Frente a ${pMes}</b><ul style="margin:8px 0 0;padding-left:20px;line-height:1.8">${cmp('Ahorro',P,'A')}${cmp('Gastos',P,'G',true)}${cmp('Ingresos',P,'I')}</ul></div>
+    <div><b>Frente a ${mes.toLowerCase()} de ${+y-1}</b><ul style="margin:8px 0 0;padding-left:20px;line-height:1.8">${cmp('Ahorro',Y1,'A')}${cmp('Gastos',Y1,'G',true)}${cmp('Ingresos',Y1,'I')}</ul></div></div>`);
+  const main=head+(vacio?`<p class="note">Aún no hay ingresos ni gastos guardados de ${mes.toLowerCase()}. Carga sus extractos en <a href="#/nuevo">Nuevo mes</a> y termina con «Guardar solo los gastos».</p>`:'')+kp+cmpHTML
+    +`<div class="row" style="align-items:flex-start">${card(`<div class="h2" style="margin-bottom:8px">En qué se fue el dinero</div><p class="muted" style="font-size:14px;margin:0 0 6px">Pulsa un concepto para ver sus gastos.</p>${gastosHTML}`,'style="flex:3 1 460px;min-width:0"')}${card(`<div class="h2" style="margin-bottom:8px">De dónde vino</div>${ingHTML}`,'style="flex:2 1 300px;min-width:0"')}</div>`
+    +card(`<div class="h2" style="margin-bottom:12px">Patrimonio</div>${patHTML}`);
+  return shell('resumen',main,'');
+}
+
 /* ================= lista del mes ================= */
 // Qué falta por meter del mes que se cierra. Se marca solo lo que ya está; lo demás se puede marcar a mano (Config: lista_mes).
 const listaYM=()=>S.lm||prevMonthYM(todayISO());
@@ -1966,7 +2020,8 @@ function lmItems(ym){
 }
 function lmTile(){
   const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos;
-  return `<div class="tiles" style="margin-bottom:14px">${tileC('#/lista','check','Lista de '+mlow(+ym.slice(5,7)-1),'Lo que te falta por meter: extractos, cuentas, valores y fondos.',f?`Faltan ${f} de ${L.total}`:'Todo metido',f?'warn':'ok')}</div>`;
+  const R=rmDatos(ym);
+  return `<div class="tiles duo" style="margin-bottom:14px">${tileC('#/lista','check','Lista de '+mlow(+ym.slice(5,7)-1),'Lo que te falta por meter: extractos, cuentas, valores y fondos.',f?`Faltan ${f} de ${L.total}`:'Todo metido',f?'warn':'ok')}${tileC('#/resumen','bars','Resumen de '+mlow(+ym.slice(5,7)-1),'Ingresos, gastos y ahorro del mes.',R.I||R.G?`Ahorro ${eur0(R.A)} €`:'Sin datos',R.I||R.G?(R.A>=0?'ok':'warn'):'')}</div>`;
 }
 function listaView(){
   const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos, mes=mlow(+ym.slice(5,7)-1);
@@ -2105,7 +2160,7 @@ function lmSaveDlg(){
   lmGuardarValor(listaYM(),S.lmPos,round2(v)); closeDlg(); render(); toast('Guardado en la foto de '+mlow(+listaYM().slice(5,7)-1));
 }
 
-const VIEWS={lista:listaView,guia:guiaView,inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,tipos:tiposView,datos:datosView};
+const VIEWS={resumen:resumenView,lista:listaView,guia:guiaView,inicio:inicioView,nuevo:nuevoView,mes:elegirMesView,gasto:gastoView,anio:anioView,comparar:compararView,movs:movsView,pat:patView,foto:fotoView,conceptos:conceptosView,vacaciones:vacacionesView,tipos:tiposView,datos:datosView};
 
 /* ================= eventos ================= */
 const ACT={
@@ -2133,6 +2188,10 @@ const ACT={
   pickmonth(el){ const keep=S.wiz; wizInit(el.dataset.ym); go('nuevo/1'); },
   wizsave(el){ wizSave(el.dataset.mode); },
   fotosave(){ fotoSave(); },
+  rmprev(){ S.rm=addMonths(resumenYM(),-1); render(); },
+  rmnext(){ const n=addMonths(resumenYM(),1); if(n<=prevMonthYM(todayISO())){ S.rm=n; render(); } else toast('Ese mes todavía no ha terminado'); },
+  rmcat(el){ const ym=resumenYM(); S.year=+ym.slice(0,4); S.f={q:'',cat:el.dataset.c||'__none__',month:+ym.slice(5,7),limit:80,tab:''}; go('movs'); },
+  rming(){ const ym=resumenYM(); S.year=+ym.slice(0,4); S.f={q:'',cat:'',month:+ym.slice(5,7),limit:80,tab:'ing'}; go('movs'); },
   lmprev(){ S.lm=addMonths(listaYM(),-1); render(); },
   lmnext(){ const n=addMonths(listaYM(),1); if(n<=prevMonthYM(todayISO())){ S.lm=n; render(); } else toast('Ese mes todavía no ha terminado'); },
   lmtog(el){ const ym=listaYM(), x=lmItems(ym).groups.flatMap(g=>g.items).find(i=>i.k===el.dataset.k); if(!x) return;
