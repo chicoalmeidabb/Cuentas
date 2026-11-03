@@ -260,11 +260,14 @@ dialog .acts{display:flex;align-items:center;gap:10px;margin-top:10px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 // ==CORE==
-const APP_VERSION='3.6';
+const APP_VERSION='3.7';
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MSHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const mlow=i=>MONTHS[i].toLowerCase();
-const CUENTAS=['BBVA cuenta','BBVA Conjunta','Bankinter','Revolut'];
+const CUENTAS=['BBVA cuenta','BBVA Conjunta','BBVA Tarjeta virtual','Bankinter','Revolut','N26'];
+// Nombre que se ve; el guardado en la hoja no cambia (los gastos antiguos siguen con «BBVA cuenta»)
+const CU_NOMBRE={'BBVA cuenta':'BBVA mía'};
+const cuName=c=>CU_NOMBRE[c]||c;
 const RULES=[
   ['ferreteria','Bricolaje'],['carref','Supermercado'],['mercadona','Supermercado'],['lidl','Supermercado'],
   ['cash','Supermercado'],['expvaguad','Supermercado'],['las vaguada','Supermercado'],['guadiana','Supermercado'],
@@ -347,8 +350,8 @@ function applyDup(rows,existing){
 }
 
 /* ---------- lectura de extractos (Excel / CSV) ---------- */
-const SYN={f:['fecha','f valor','date','fecha valor','fecha operacion','fecha contable'],
-           c:['concepto','descripcion','detalle','movimiento','description','concepto movimiento'],
+const SYN={f:['fecha','f valor','date','fecha valor','fecha operacion','fecha contable','booking date','value date'],
+           c:['concepto','descripcion','detalle','movimiento','description','concepto movimiento','partner name','payee','beneficiario'],
            i:['importe','cantidad','amount','importe eur','importe en eur']};
 function parseBankAoa(aoa){
   let h=-1, ci=null;
@@ -682,7 +685,8 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
     <p>Aquí cargas los extractos del banco de un mes. Son tres pasos.</p>
     <ol class="pasos">
       <li>Pulsa <b>Nuevo mes</b> y elige el mes.</li>
-      <li><b>Paso 1:</b> sube el extracto de cada cuenta (Excel o CSV). La app detecta los traspasos y los duplicados.</li>
+      <li><b>Paso 1:</b> sube el extracto de cada cuenta (Excel o CSV): BBVA mía, BBVA Conjunta, BBVA Tarjeta virtual, Bankinter, Revolut y N26. Con todo junto: la app separa gastos e ingresos y detecta los traspasos y los duplicados.</li>
+      <li>Si recargas la tarjeta virtual desde tu cuenta, marca la recarga en <b>Quitar</b>: si no, el gasto contaría dos veces. La app lo recuerda para otros meses.</li>
       <li><b>Paso 2:</b> revisa los gastos. Los que no reconoce los asignas a un concepto, y la app lo recuerda para el mes siguiente.</li>
       <li><b>Paso 3:</b> cierra el mes. Puedes añadir otros ingresos que falten y los saldos.</li>
     </ol>
@@ -696,8 +700,9 @@ const GUIA_HTML=`<nav class="card gidx" aria-label="Índice"><h2 class="h2">Índ
       <li>Abre <b>Lista del mes</b>. Sale el mes anterior; con las flechas eliges otro.</li>
       <li>Lo que ya está metido sale con el círculo en verde. Arriba ves cuántas cosas faltan.</li>
       <li>En cada cuenta, valor o fondo que falte, pulsa <b>Meter</b> y escribe el importe. Si no ha cambiado, pulsa <b>Sigue igual</b>.</li>
-      <li>Para los gastos pulsa <b>Cargar</b>; para los ingresos, <b>Apuntar</b>; para compras, ventas o dividendos, <b>Anotar</b>.</li>
-      <li>Si algo no toca ese mes (una cuenta sin gastos, por ejemplo), pulsa su círculo para marcarlo a mano.</li>
+      <li>Para el extracto de cada cuenta pulsa <b>Cargar</b>: subes el Excel del mes con todo junto y la app separa los gastos de los ingresos. Para compras, ventas o dividendos, pulsa <b>Anotar</b>.</li>
+      <li>Si una cuenta no ha tenido movimientos, pulsa <b>Sin movimientos</b> y mete solo su saldo en <b>Dinero en cuentas</b>.</li>
+      <li>Si algo no toca ese mes, pulsa su círculo para marcarlo a mano. Si te equivocas, vuelve a pulsarlo.</li>
     </ol>
     <div class="aviso">Los importes que metes aquí van a la foto del patrimonio que cierra ese mes. Si ya la habías hecho, se completa; no se crea otra.</div>
     <a class="top" href="#/guia">↑ Volver al índice</a>
@@ -1036,7 +1041,7 @@ function wizTableIng(){
     if(r.out&&r.date) nota+=`<span class="tag" style="display:block;margin-top:2px">Fuera de ${mlow(+W.ym.slice(5,7)-1)}</span>`;
     const tipos=[...new Set([...TIPOS_ING,r.tipoSel].filter(Boolean))];
     return `<tr class="${r.quitar?'dim':''}"><td class="l"><label style="display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--muted)"><input type="checkbox" data-chg="wizqi" data-id="${esc(r.id)}" ${r.quitar?'checked':''} style="width:20px;height:20px;accent-color:var(--accent)" aria-label="Quitar ${esc(r.desc)}">Quitar</label></td>
-      <td class="l ${r.quitar?'strike':''}">${esc(r.dateStr)}</td><td class="l muted">${esc(r.cuenta)}</td><td class="l ${r.quitar?'strike':''}" style="font-weight:600;white-space:normal;min-width:220px">${esc(r.desc)}${nota}</td>
+      <td class="l ${r.quitar?'strike':''}">${esc(r.dateStr)}</td><td class="l muted">${esc(cuName(r.cuenta))}</td><td class="l ${r.quitar?'strike':''}" style="font-weight:600;white-space:normal;min-width:220px">${esc(r.desc)}${nota}</td>
       <td class="l">${r.quitar?'<span class="tag gray">No se guarda</span>':`<select class="sel sm" data-chg="wiztipoi" data-id="${esc(r.id)}" aria-label="Tipo de ${esc(r.desc)}">${tipos.map(t=>`<option${t===r.tipoSel?' selected':''}>${esc(t)}</option>`).join('')}</select>`}</td>
       <td class="pos strike" style="font-weight:700">+${num2(r.amount)} €</td></tr>`; }).join('');
   return `<div class="h2" style="margin-top:8px">Ingresos del extracto</div><p style="font-size:17px"><b>${T.n} ingresos · ${eur(T.total)}</b> <span class="muted">· ${T.quitadas} quitados</span></p><div class="card tblwrap" style="padding:0"><table class="t" style="min-width:760px"><thead><tr><th class="l"></th><th class="l">Fecha</th><th class="l">Cuenta</th><th class="l">Descripción</th><th class="l">Tipo</th><th>Importe</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1054,9 +1059,9 @@ function srcTile(cuenta){
   if(s){
     const ds=s.gastos.map(g=>parseDate(g.rawDate)).filter(Boolean).sort((a,b)=>isoNum(a)-isoNum(b));
     const rango=ds.length?`${pad2(ds[0].d)}/${pad2(ds[0].m)} a ${pad2(ds[ds.length-1].d)}/${pad2(ds[ds.length-1].m)}`:'sin fechas';
-    return `<div class="src"><span class="nm">${esc(cuenta)}</span><span class="ok">${icon('check','s')}Cargado</span><span class="fs">${esc(s.file)} · ${s.gastos.length} gastos · ${rango}</span>${s.note?`<span class="fs">${esc(s.note)}</span>`:''}<label class="btn alt sm">${inp}Cambiar archivo</label></div>`;
+    return `<div class="src"><span class="nm">${esc(cuName(cuenta))}</span><span class="ok">${icon('check','s')}Cargado</span><span class="fs">${esc(s.file)} · ${s.gastos.length} gastos · ${rango}</span>${s.note?`<span class="fs">${esc(s.note)}</span>`:''}<label class="btn alt sm">${inp}Cambiar archivo</label></div>`;
   }
-  return `<div class="src"><span class="nm">${esc(cuenta)}</span><span class="fs">Sin extracto todavía</span><span class="fs">Excel o CSV</span>${msg?`<span class="fs warn">${esc(msg)}</span>`:''}<label class="btn alt sm">${inp}${icon('up','s')}Subir extracto</label></div>`;
+  return `<div class="src"><span class="nm">${esc(cuName(cuenta))}</span><span class="fs">Sin extracto todavía</span><span class="fs">Excel o CSV</span>${msg?`<span class="fs warn">${esc(msg)}</span>`:''}<label class="btn alt sm">${inp}${icon('up','s')}Subir extracto</label></div>`;
 }
 function wizTable(){
   const W=S.wiz; if(!W.rows.length) return `<div class="empty">Sube el extracto de una cuenta y aquí verás los gastos de ${mlow(+W.ym.slice(5,7)-1)} para revisarlos y quitar los traspasos.</div>`;
@@ -1070,7 +1075,7 @@ function wizTable(){
     if(!r.quitar&&(r.src==='exact-mixed'||r.src==='prefix')&&W.userCat[r.id]===undefined) nota+=`<span class="tag" style="display:block;margin-top:2px">Revisa la categoría</span>`;
     const miss=!r.quitar&&!r.cat; const warnr=!r.quitar&&(miss||nota&&!r.auto&&r.dup!=='dup');
     return `<tr class="${r.quitar?'dim':warnr?'warnrow':''}"><td class="l"><label style="display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--muted)"><input type="checkbox" data-chg="wizq" data-id="${esc(r.id)}" ${r.quitar?'checked':''} style="width:20px;height:20px;accent-color:var(--accent)" aria-label="Quitar ${esc(r.desc)}">Quitar</label></td>
-      <td class="l ${r.quitar?'strike':''}">${esc(r.dateStr)}</td><td class="l muted">${esc(r.cuenta)}</td><td class="l ${r.quitar?'strike':''}" style="font-weight:600;white-space:normal;min-width:220px">${esc(r.desc)}${nota}</td>
+      <td class="l ${r.quitar?'strike':''}">${esc(r.dateStr)}</td><td class="l muted">${esc(cuName(r.cuenta))}</td><td class="l ${r.quitar?'strike':''}" style="font-weight:600;white-space:normal;min-width:220px">${esc(r.desc)}${nota}</td>
       <td class="l">${r.quitar?'<span class="tag gray">No se guarda</span>':`<select class="sel sm" data-chg="wizcat" data-id="${esc(r.id)}" aria-label="Categoría de ${esc(r.desc)}" ${miss?'style="border-color:var(--bad)"':''}><option value="">Sin categoría</option>${catOpts(r.cat)}</select>`}</td>
       <td class="strike" style="font-weight:700">${num2(r.amount)} €</td></tr>`; }).join('');
   return `<div class="card tblwrap" style="padding:0"><table class="t" style="min-width:760px"><thead><tr><th class="l"></th><th class="l">Fecha</th><th class="l">Cuenta</th><th class="l">Descripción</th><th class="l">Categoría</th><th>Importe</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1085,7 +1090,7 @@ function nuevoView(arg){
   if(T.traspasos.length) notes.push(`<b>${T.traspasos.length} posible traspaso.</b> Ya está marcado para quitar; desmárcalo si no lo es.`);
   const dups=W.rows.filter(r=>r.dup==='dup').length; if(dups) notes.push(`<b>${dups} ya estaban cargados</b> y no se volverán a guardar.`);
   const sum1=W.rows.length?`<p style="font-size:17px"><b>${T.n} gastos · ${eur(T.total)}</b> <span class="muted">· ${T.quitadas} quitados</span></p>`:'';
-  const main=nmHead(1,'Gastos de '+ymLabel(W.ym).toLowerCase())+card(mesF)+`<div class="srcs">${CUENTAS.map(srcTile).join('')}<div class="src"><span class="nm">N26</span><span class="fs">Solo saldo, sin extracto</span><span class="fs">Se apunta en el paso 2</span></div></div>`
+  const main=nmHead(1,'Gastos de '+ymLabel(W.ym).toLowerCase())+card(mesF)+`<div class="srcs">${CUENTAS.map(srcTile).join('')}</div>`
     +(notes.length?`<div class="row">${notes.map(n=>`<p class="note grow1" style="min-width:300px">${n}</p>`).join('')}</div>`:'')+sum1+wizTable()+wizTableIng();
   return shell('nuevo',main,`<a class="btn alt" href="#/inicio">Cancelar</a><a class="btn" href="#/nuevo/2">Siguiente: saldos</a>`);
 }
@@ -1363,7 +1368,7 @@ function compararView(){
 function filteredIngs(){
   const q=norm(S.f.q), pre=S.year+'-'; let rows=S.db.ingMov.filter(r=>r.f.startsWith(pre));
   if(S.f.month) rows=rows.filter(r=>+r.f.slice(5,7)===S.f.month);
-  if(q) rows=rows.filter(r=>norm(r.d).includes(q)||norm(r.t).includes(q)||norm(r.cu).includes(q));
+  if(q) rows=rows.filter(r=>norm(r.d).includes(q)||norm(r.t).includes(q)||norm(cuName(r.cu)).includes(q));
   return rows.sort((a,b)=>b.f.localeCompare(a.f)||b.id.localeCompare(a.id));
 }
 function ingListHTML(){
@@ -1378,7 +1383,7 @@ function filteredMovs(){
   if(S.f.tipo) rows=rows.filter(r=>S.f.tipo==='__none__'?!r.t:r.t===S.f.tipo);
   if(S.f.month) rows=rows.filter(r=>+r.f.slice(5,7)===S.f.month);
   if(S.f.cat==='__none__') rows=rows.filter(r=>!r.c); else if(S.f.cat) rows=rows.filter(r=>r.c===S.f.cat);
-  if(q) rows=rows.filter(r=>norm(r.d).includes(q)||norm(r.c).includes(q)||norm(r.cu).includes(q));
+  if(q) rows=rows.filter(r=>norm(r.d).includes(q)||norm(r.c).includes(q)||norm(cuName(r.cu)).includes(q));
   return rows.sort((a,b)=>b.f.localeCompare(a.f)||b.id.localeCompare(a.id));
 }
 function movListHTML(){
@@ -1842,7 +1847,7 @@ function entryHTML(m){
   <div class="field"><label for="e-txt">Descripción</label><input id="e-txt" class="inp" style="font-weight:500" list="e-list" autocomplete="off" value="${esc(r.d)}"><datalist id="e-list">${dl}</datalist></div>
   <div class="field"><label for="e-cat">Categoría</label><select id="e-cat" class="sel" data-chg="e-cat" style="font-weight:500"><option value="">Sin categoría</option>${names.map(n=>`<option value="${esc(n)}"${n===r.c?' selected':''}>${esc(n)}</option>`).join('')}</select></div>
   ${scriptVer(1.2)?`<div class="field"><label for="e-tipo">Tipo (opcional: seguro, impuesto…)</label><input id="e-tipo" class="inp" style="font-weight:500" list="e-tipos" autocomplete="off" value="${esc(r.t||'')}"><datalist id="e-tipos">${tiposTodos().map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>`:''}
-  <div class="row"><div class="field grow1"><label for="e-date">Fecha</label><input id="e-date" class="inp" type="date" value="${esc(r.f)}"></div><div class="field grow1"><label for="e-cu">Cuenta</label><select id="e-cu" class="sel" style="font-weight:500">${cu.map(c=>`<option${c===r.cu?' selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+  <div class="row"><div class="field grow1"><label for="e-date">Fecha</label><input id="e-date" class="inp" type="date" value="${esc(r.f)}"></div><div class="field grow1"><label for="e-cu">Cuenta</label><select id="e-cu" class="sel" style="font-weight:500">${cu.map(c=>`<option value="${esc(c)}"${c===r.cu?' selected':''}>${esc(cuName(c))}</option>`).join('')}</select></div></div>
   <p class="note err" id="e-err" hidden></p>
   <div class="acts">${edit?'<button class="btn danger" data-act="e-del">Borrar</button>':''}<span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="e-save">Guardar</button></div>`;
 }
@@ -1869,7 +1874,7 @@ function ingEntryHTML(m){
   <div class="field"><label for="n-amt">Importe (€)</label><input id="n-amt" class="inp" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${r.i===''?'':esc(String(r.i).replace('.',','))}"></div>
   <div class="field"><label for="n-txt">Descripción</label><input id="n-txt" class="inp" style="font-weight:500" autocomplete="off" placeholder="Por ejemplo: venta de la bici" value="${esc(r.d)}"></div>
   <div class="field"><label for="n-tipo">Tipo</label><input id="n-tipo" class="inp" style="font-weight:500" list="n-tipos" autocomplete="off" value="${esc(r.t||'')}"><datalist id="n-tipos">${tp.map(x=>`<option value="${esc(x)}">`).join('')}</datalist></div>
-  <div class="row"><div class="field grow1"><label for="n-date">Fecha</label><input id="n-date" class="inp" type="date" value="${esc(r.f)}"></div><div class="field grow1"><label for="n-cu">Cuenta</label><select id="n-cu" class="sel" style="font-weight:500">${cu.map(c=>`<option${c===r.cu?' selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+  <div class="row"><div class="field grow1"><label for="n-date">Fecha</label><input id="n-date" class="inp" type="date" value="${esc(r.f)}"></div><div class="field grow1"><label for="n-cu">Cuenta</label><select id="n-cu" class="sel" style="font-weight:500">${cu.map(c=>`<option value="${esc(c)}"${c===r.cu?' selected':''}>${esc(cuName(c))}</option>`).join('')}</select></div></div>
   <p class="muted" style="font-size:14px;margin:0 0 8px">Un ingreso no se descuenta de ningún gasto: sirve para ver cuánto entra al año y cuánto queda.</p>
   <p class="note err" id="e-err" hidden></p>
   <div class="acts">${edit?'<button class="btn danger" data-act="ing-del">Borrar</button>':''}<span style="flex:1"></span><button class="btn alt" data-act="dclose">Cancelar</button><button class="btn" data-act="ing-save">Guardar</button></div>`;
@@ -1926,11 +1931,10 @@ function lmGuardarValor(ym,pid,v){
 }
 function lmItems(ym){
   const man=new Set(lmMarcas()[ym]||[]), mes=mlow(+ym.slice(5,7)-1), groups=[];
-  const it=(k,nombre,auto,txt,acts)=>({k,nombre,auto,man:!auto&&man.has(k),done:auto||man.has(k),txt:auto?txt:man.has(k)?'Marcado a mano':txt,acts});
-  groups.push({t:'Gastos del banco',items:CUENTAS.map(c=>{ const n=S.db.movs.filter(m=>m.cu===c&&m.f.startsWith(ym)).length;
-    return it('g:'+c,c,n>0,n>0?(n===1?'1 gasto cargado':`${n} gastos cargados`):`Sin gastos de ${mes}`,n>0?'':`<button class="btn alt sm" data-act="lmcargar">Cargar</button>`); })});
-  const ing=ingresoMes(S.db,ym);
-  groups.push({t:'Ingresos',items:[it('ing','Ingresos del mes',ing>0,ing>0?`${eur(ing)} apuntados`:'Sin ingresos todavía',`<button class="btn alt sm" data-act="addi">Apuntar</button>`)]});
+  const it=(k,nombre,auto,txt,acts)=>({k,nombre,auto,man:!auto&&man.has(k),done:auto||man.has(k),txt:auto?txt:man.has(k)?(k.startsWith('g:')?`Sin movimientos en ${mes}`:'Marcado a mano'):txt,acts});
+  const pl=(n,a,b)=>n===1?'1 '+a:n+' '+b;
+  groups.push({t:'Extractos del banco',items:CUENTAS.map(c=>{ const g=S.db.movs.filter(m=>m.cu===c&&m.f.startsWith(ym)).length, i=S.db.ingMov.filter(m=>m.cu===c&&m.f.startsWith(ym)).length, ok=g+i>0;
+    return it('g:'+c,'Extracto de '+cuName(c),ok,ok?[g?pl(g,'gasto','gastos'):'',i?pl(i,'ingreso','ingresos'):''].filter(Boolean).join(' y ')+(g+i===1?' cargado':' cargados'):`Sin cargar el de ${mes}`,ok?'':`<button class="btn sm" data-act="lmcargar">Cargar</button><button class="btn alt sm" data-act="lmsin" data-k="${esc('g:'+c)}">Sin movimientos</button>`); })});
   const P=lmPosiciones(ym), GG=[['Metálico','Dinero en cuentas'],['Acciones','Valores'],['Fondos','Fondos y depósitos']];
   const posItem=r=>{ const has=r.v!=null;
     const txt=has?eur(r.v):r.prev?`Último: ${eur(r.prev.v)} (${fmtF(r.prev.f)})`:'Sin valor anterior';
@@ -1945,7 +1949,7 @@ function lmItems(ym){
 }
 function lmTile(){
   const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos;
-  return `<div class="tiles" style="margin-bottom:14px">${tileC('#/lista','check','Lista de '+mlow(+ym.slice(5,7)-1),'Lo que te falta por meter: gastos, cuentas, valores y fondos.',f?`Faltan ${f} de ${L.total}`:'Todo metido',f?'warn':'ok')}</div>`;
+  return `<div class="tiles" style="margin-bottom:14px">${tileC('#/lista','check','Lista de '+mlow(+ym.slice(5,7)-1),'Lo que te falta por meter: extractos, cuentas, valores y fondos.',f?`Faltan ${f} de ${L.total}`:'Todo metido',f?'warn':'ok')}</div>`;
 }
 function listaView(){
   const ym=listaYM(), L=lmItems(ym), f=L.total-L.hechos, mes=mlow(+ym.slice(5,7)-1);
@@ -2002,6 +2006,7 @@ const ACT={
   lmtog(el){ const ym=listaYM(), x=lmItems(ym).groups.flatMap(g=>g.items).find(i=>i.k===el.dataset.k); if(!x) return;
     if(x.auto){ toast('Ya está metido'); return; } lmMarcar(ym,x.k,!x.man); render(); toast(x.man?'Desmarcado':'Marcado a mano'); },
   lmcargar(){ wizInit(listaYM()); go('nuevo/1'); },
+  lmsin(el){ lmMarcar(listaYM(),el.dataset.k,true); render(); toast('Marcado: sin movimientos'); },
   lmval(el){ lmDlg(el.dataset.id); }, 'lm-save'(){ lmSaveDlg(); },
   lmigual(el){ const ym=listaYM(), r=lmPosiciones(ym).list.find(x=>x.p.id===el.dataset.id); if(!r||!r.prev) return; lmGuardarValor(ym,r.p.id,r.prev.v); render(); toast('Guardado: sigue igual'); },
   install(){ const ip=window.__ip; if(!ip){ toast('Chrome no ofrece instalar ahora. Quita el acceso directo viejo y recarga la página.'); return; }
